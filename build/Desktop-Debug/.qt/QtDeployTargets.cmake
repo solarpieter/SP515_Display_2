@@ -1,0 +1,2 @@
+set(__QT_DEPLOY_TARGET_SP515_Display_2_FILE /home/pieter007/Documents/SP515_Display_2/build/Desktop-Debug/SP515_Display_2)
+set(__QT_DEPLOY_TARGET_SP515_Display_2_TYPE EXECUTABLE)

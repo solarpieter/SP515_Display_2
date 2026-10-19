@@ -1,0 +1,22 @@
+{
+	"BUILD_DIR" : "/home/pieter007/Documents/SP515_Display_2/build/Desktop-Debug/SP515_Display_2_autogen",
+	"CMAKE_BINARY_DIR" : "/home/pieter007/Documents/SP515_Display_2/build/Desktop-Debug",
+	"CMAKE_CURRENT_BINARY_DIR" : "/home/pieter007/Documents/SP515_Display_2/build/Desktop-Debug",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/home/pieter007/Documents/SP515_Display_2",
+	"CMAKE_SOURCE_DIR" : "/home/pieter007/Documents/SP515_Display_2",
+	"CROSS_CONFIG" : false,
+	"GENERATOR" : "Ninja",
+	"INCLUDE_DIR" : "/home/pieter007/Documents/SP515_Display_2/build/Desktop-Debug/SP515_Display_2_autogen/include",
+	"INPUTS" : [ "/home/pieter007/Documents/SP515_Display_2/Recources/ICON/time.svg" ],
+	"LOCK_FILE" : "/home/pieter007/Documents/SP515_Display_2/build/Desktop-Debug/CMakeFiles/SP515_Display_2_autogen.dir/AutoRcc_Recources_EWIEGA46WW_Lock.lock",
+	"MULTI_CONFIG" : false,
+	"OPTIONS" : [ "-name", "Recources" ],
+	"OUTPUT_CHECKSUM" : "EWIEGA46WW",
+	"OUTPUT_NAME" : "qrc_Recources.cpp",
+	"RCC_EXECUTABLE" : "/usr/lib/qt6/libexec/rcc",
+	"RCC_LIST_OPTIONS" : [ "--list" ],
+	"SETTINGS_FILE" : "/home/pieter007/Documents/SP515_Display_2/build/Desktop-Debug/CMakeFiles/SP515_Display_2_autogen.dir/AutoRcc_Recources_EWIEGA46WW_Used.txt",
+	"SOURCE" : "/home/pieter007/Documents/SP515_Display_2/Recources.qrc",
+	"USE_BETTER_GRAPH" : true,
+	"VERBOSITY" : 0
+}

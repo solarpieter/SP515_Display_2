@@ -1,0 +1,123 @@
+#ifndef DARHTHEME_H
+#define DARHTHEME_H
+
+#include <QString>
+
+const QString darkTheme = R"(
+
+QMainWindow {
+    background-color: #0A1F4D;
+}
+
+QWidget {
+    background-color: #0A1F4D;
+    color: white;
+    font-family: Arial;
+}
+
+/* Top Status Area */
+QLabel#lblSystemStatus,
+QLabel#lblDate,
+QLabel#lblTime {
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    background-color: #0A1F4D;
+}
+
+/* Measurement Frames */
+QFrame#frameTopdashboard,
+QFrame#frame_battery_voltage,
+QFrame#frame_battery_current,
+QFrame#frame_battery_mode,
+QFrame#frame_load_voltage,
+QFrame#frame_load_current,
+QFrame#frame_system_alarms,
+QFrame#frame_battery_temperature,
+QFrame#frame_dashboard_8,
+QFrame#frame_dashboard_9,
+QFrame#frame_dashboard_10,
+QFrame#frame_dashboard_11,
+QFrame#frame_dashboard_12
+{
+    background-color: #000000;
+    border: 2px solid #707070;
+    border-radius: 8px;
+}
+
+/* Titles */
+QLabel {
+    color: white;
+    background: transparent;
+}
+
+/* Battery Mode */
+QLabel#lblBatteryModeValue {
+    color: white;
+    background-color: #00A030;
+    border: 2px solid #00D040;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+/* Alarm Status */
+QLabel#lblSystemAlarmValue {
+    color: #00FF66;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+/* Numerical Values */
+QLabel#lblBatteryVoltageValue,
+QLabel#lblBatteryCurrentValue,
+QLabel#lblLoadVoltageValue,
+QLabel#lblLoadCurrentValue {
+    color: white;
+    font-size: 32px;
+    font-weight: bold;
+}
+
+/* Buttons */
+QPushButton {
+    background-color: #18CFE0;
+    color: white;
+    border: 2px solid #00A0B0;
+    border-radius: 15px;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #25E4F7;
+}
+
+QPushButton:pressed {
+    background-color: #00A0B0;
+}
+
+/* Menu Buttons */
+QPushButton#btnMenu,
+QPushButton#btnHome,
+QPushButton#btnTheme {
+    min-height: 50px;
+}
+
+
+QPushButton#btnChargerEnable
+ {
+    background-color: #AA0000;
+    color: white;
+    border: 2px solid #880000;
+    border-radius: 15px;
+    font-weight: bold;
+}
+
+QPushButton#btnChargerEnable:checked
+{
+    background-color: #00A030;
+    color: white;
+    border: 2px solid #008020;
+}
+)";
+
+#endif // DARHTHEME_H
