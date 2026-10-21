@@ -22,10 +22,29 @@ The display app does not open the serial port itself. Two small apps on the Pi s
 ## Hardware
 
 - Raspberry Pi (developed on a Raspberry Pi 4B)
-- Display connected to the Pi
+- 7" Raspberry Pi Touch Display 2 (1280 x 720, landscape)
 - RS485 transceiver connected to a Pi UART, wired to the SP515
+- UART settings: 115200 baud
 
-> TODO: add display model/resolution, UART device (e.g. `/dev/serial0`), baud rate, and RS485 direction-control wiring.
+### RS485 wiring
+
+A MAX485 transceiver on the Pi connects to the Pi UART (UART0, header pins 8 and 10):
+
+| Pi | MAX485 |
+|---|---|
+| GPIO14 (TXD, pin 8) | DI |
+| GPIO15 (RXD, pin 10) | RO |
+| GPIO17 (pin 11) | DE and /RE, tied together |
+| GND | GND |
+| 3.3 V or 5 V (see note) | VCC |
+
+A and B go to the SP515 RS485 bus (A to A, B to B), with a common ground.
+
+Direction control is done in software: the send app drives GPIO17 high before transmitting, waits for the last byte to leave the UART, then drives it low so the Pi listens for the SP515 reply.
+
+> Note: a standard MAX485 runs from 5 V and its RO output is then 5 V, which can damage the Pi's 3.3 V RX pin. Use a 3.3 V part (MAX3485 or SP3485), or level-shift RO.
+
+> TODO: add the UART device (e.g. `/dev/serial0`), the data/parity/stop bit settings, and bus termination details.
 
 ## Software requirements
 

@@ -878,14 +878,10 @@
          <property name="text">
           <string/>
          </property>
-         <property name="icon">
-          <iconset resource="Recources.qrc">
-           <normaloff>:/Recources/ICON/Recources/ICON/time.svg</normaloff>:/Recources/ICON/Recources/ICON/time.svg</iconset>
-         </property>
          <property name="iconSize">
           <size>
-           <width>60</width>
-           <height>60</height>
+           <width>100</width>
+           <height>100</height>
           </size>
          </property>
         </widget>
@@ -1007,10 +1003,6 @@
          <property name="text">
           <string>Date Settings</string>
          </property>
-         <property name="icon">
-          <iconset>
-           <normaloff>Recources/ICON/calendar.svg</normaloff>Recources/ICON/calendar.svg</iconset>
-         </property>
          <property name="iconSize">
           <size>
            <width>60</width>
@@ -1035,10 +1027,6 @@
          </property>
          <property name="text">
           <string>Time Settings</string>
-         </property>
-         <property name="icon">
-          <iconset>
-           <normaloff>Recources/ICON/time.svg</normaloff>Recources/ICON/time.svg</iconset>
          </property>
          <property name="iconSize">
           <size>
@@ -1301,7 +1289,7 @@
         <second>0</second>
         <year>2026</year>
         <month>2</month>
-        <day>8</day>
+        <day>7</day>
        </datetime>
       </property>
       <property name="displayFormat">
@@ -1479,8 +1467,6 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
- <resources>
-  <include location="Recources.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

@@ -57,6 +57,8 @@ private slots:
 
     void on_pushButtonBattery_settings_clicked();
 
+    void on_pushButton_5_clicked();
+
 private:
     Ui::MainWindow *ui;
     bool darkMode;

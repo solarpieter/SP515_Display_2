@@ -178,3 +178,9 @@ void MainWindow::on_pushButtonBattery_settings_clicked()
 
 }
 
+
+void MainWindow::on_pushButton_5_clicked()
+{
+
+}
+
