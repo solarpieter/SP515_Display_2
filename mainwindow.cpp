@@ -40,7 +40,14 @@ MainWindow::MainWindow(QWidget *parent)
             });
 
     clockTimer->start(1000);
-
+    if (ui->spin_measured_value)
+    {
+        ui->spin_measured_value->setInputMethodHints(Qt::ImhFormattedNumbersOnly);
+    }
+    if (ui->spin_offset_value)
+    {
+        ui->spin_offset_value->setInputMethodHints(Qt::ImhFormattedNumbersOnly);
+    }
 }
 
 MainWindow::~MainWindow()
@@ -140,7 +147,7 @@ void MainWindow::on_radioButtonHighcontrast_clicked()
 
 void MainWindow::on_pushButtonDisplay_settings_clicked()
 {
-    ui->stackedWidget->setCurrentIndex(4);
+    ui->stackedWidget->setCurrentIndex(6);
 }
 
 
@@ -182,5 +189,17 @@ void MainWindow::on_pushButtonBattery_settings_clicked()
 void MainWindow::on_pushButton_5_clicked()
 {
 
+}
+
+
+void MainWindow::on_pushButton_12_clicked()
+{
+    ui->stackedWidget->setCurrentIndex(0);
+}
+
+
+void MainWindow::on_pushButton_Calibration_clicked()
+{
+    ui->stackedWidget->setCurrentIndex(2);
 }
 

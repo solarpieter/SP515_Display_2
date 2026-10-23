@@ -38,7 +38,18 @@ QFrame#frame_dashboard_8,
 QFrame#frame_dashboard_9,
 QFrame#frame_dashboard_10,
 QFrame#frame_dashboard_11,
-QFrame#frame_dashboard_12
+QFrame#frame_dashboard_12,
+QFrame#frame_battery_voltage_2,
+QFrame#frame_battery_cur_3,
+QFrame#label_batt_volt_value_3,
+QFrame#label_batt_volt_value_4,
+QFrame#label_batt_volt_value_5,
+QFrame#label_batt_cur_value_6,
+QFrame#label_batt_cur_value_7,
+QFrame#label_batt_cur_value_8,
+QVBoxLayout#verticalLayout_4,
+QVBoxLayout#verticalLayout_6,
+QComboBox#combo_calibration_target
 {
     background-color: #000000;
     border: 2px solid #707070;
