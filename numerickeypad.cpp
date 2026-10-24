@@ -143,12 +143,23 @@ void NumericKeypad::hideIfNoEditFocused()
 
 void NumericKeypad::reposition()
 {
-    if (!parentWidget())
+    QWidget *page = parentWidget();
+    if (!page)
         return;
     adjustSize();
+
+    // Work out which part of the page is really visible: the page can be
+    // taller than the window, which would cut the keypad off.
+    QRect visible = page->rect();
+    if (QWidget *win = window()) {
+        const QPoint winTopLeft = page->mapFromGlobal(win->mapToGlobal(QPoint(0, 0)));
+        visible &= QRect(winTopLeft, win->size());
+    }
+
     const int margin = 10;
-    move(parentWidget()->width() - width() - margin,
-         parentWidget()->height() - height() - margin);
+    const int x = visible.x() + visible.width() - width() - margin;
+    const int y = visible.y() + visible.height() - height() - margin;
+    move(qMax(visible.x(), x), qMax(visible.y(), y));
 }
 
 void NumericKeypad::sendKey(int key, const QString &text)

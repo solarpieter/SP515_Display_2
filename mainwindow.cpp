@@ -70,13 +70,13 @@ void MainWindow::on_pushButton_menu_clicked()
 
 void MainWindow::on_pushButtonDate_settings_clicked()
 {
-    ui->stackedWidget->setCurrentIndex(5);
+    ui->stackedWidget->setCurrentIndex(7);
 }
 
 
 void MainWindow::on_pushButtonTime_settings_clicked()
 {
-    ui->stackedWidget->setCurrentIndex(6);
+    ui->stackedWidget->setCurrentIndex(8);
 }
 
 
