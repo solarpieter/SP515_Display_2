@@ -40,13 +40,14 @@ MainWindow::MainWindow(QWidget *parent)
             });
 
     clockTimer->start(1000);
-    if (ui->spin_measured_value)
+
+    // Numeric keypad for the calibration page: hidden until a value is tapped
+    keypad = new NumericKeypad(ui->pageCalibration);
+    for (QDoubleSpinBox *spin : {ui->spin_measured_value, ui->spin_offset_value})
     {
-        ui->spin_measured_value->setInputMethodHints(Qt::ImhFormattedNumbersOnly);
-    }
-    if (ui->spin_offset_value)
-    {
-        ui->spin_offset_value->setInputMethodHints(Qt::ImhFormattedNumbersOnly);
+        spin->setRange(-9999.99, 9999.99);   // allow negative values; adjust as needed
+        spin->setLocale(QLocale::c());       // always use "." as the decimal point
+        keypad->registerEdit(spin);
     }
 }
 

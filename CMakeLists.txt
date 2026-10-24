@@ -19,7 +19,6 @@ set(PROJECT_SOURCES
         mainwindow.ui
 	numerickeypad.h
 	numerickeypad.cpp
-        numeric-keypad.patch
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

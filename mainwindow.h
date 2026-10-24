@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QTimer>
+#include "numerickeypad.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -67,5 +68,6 @@ private:
     Ui::MainWindow *ui;
     bool darkMode;
     QTimer *clockTimer;
+    NumericKeypad *keypad;
 };
 #endif // MAINWINDOW_H
