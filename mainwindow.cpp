@@ -58,37 +58,37 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_pushButton_home_clicked()
 {
-     ui->stackedWidget->setCurrentIndex(0);
+     ui->stackedWidget->setCurrentWidget(ui->pageDashboard);
 }
 
 
 void MainWindow::on_pushButton_menu_clicked()
 {
-    ui->stackedWidget->setCurrentIndex(1);
+    ui->stackedWidget->setCurrentWidget(ui->pageMenu);
 }
 
 
 void MainWindow::on_pushButtonDate_settings_clicked()
 {
-    ui->stackedWidget->setCurrentIndex(7);
+    ui->stackedWidget->setCurrentWidget(ui->pageDate_settings);
 }
 
 
 void MainWindow::on_pushButtonTime_settings_clicked()
 {
-    ui->stackedWidget->setCurrentIndex(8);
+    ui->stackedWidget->setCurrentWidget(ui->pageTime_settings);
 }
 
 
 void MainWindow::on_pushButtonDateBack_clicked()
 {
-     ui->stackedWidget->setCurrentIndex(1);
+     ui->stackedWidget->setCurrentWidget(ui->pageMenu);
 }
 
 
 void MainWindow::on_pushButtonTimeBack_clicked()
 {
-    ui->stackedWidget->setCurrentIndex(1);
+    ui->stackedWidget->setCurrentWidget(ui->pageMenu);
 }
 
 
@@ -112,19 +112,19 @@ void MainWindow::on_pushButtonTimeSave_clicked()
 
 void MainWindow::on_pushButtonMenuHome_clicked()
 {
-     ui->stackedWidget->setCurrentIndex(0);
+     ui->stackedWidget->setCurrentWidget(ui->pageDashboard);
 }
 
 
 void MainWindow::on_pushButtonDisplaySave_clicked()
 {
-    ui->stackedWidget->setCurrentIndex(0);
+    ui->stackedWidget->setCurrentWidget(ui->pageDashboard);
 }
 
 
 void MainWindow::on_pushButtonDisplayBack_clicked()
 {
-     ui->stackedWidget->setCurrentIndex(1);
+     ui->stackedWidget->setCurrentWidget(ui->pageMenu);
 }
 
 
@@ -148,7 +148,7 @@ void MainWindow::on_radioButtonHighcontrast_clicked()
 
 void MainWindow::on_pushButtonDisplay_settings_clicked()
 {
-    ui->stackedWidget->setCurrentIndex(6);
+    ui->stackedWidget->setCurrentWidget(ui->pageDisplay_settings);
 }
 
 
@@ -171,13 +171,13 @@ void MainWindow::on_btnChargerEnable_clicked(bool checked)
 
 void MainWindow::on_pushButton_Enable_home_clicked()
 {
-    ui->stackedWidget->setCurrentIndex(0);
+    ui->stackedWidget->setCurrentWidget(ui->pageDashboard);
 }
 
 
 void MainWindow::on_pushButtonChargerenabledisable_clicked()
 {
-    ui->stackedWidget->setCurrentIndex(7);
+    ui->stackedWidget->setCurrentWidget(ui->pageEnable_Disable);
 }
 
 
@@ -195,12 +195,12 @@ void MainWindow::on_pushButton_5_clicked()
 
 void MainWindow::on_pushButton_12_clicked()
 {
-    ui->stackedWidget->setCurrentIndex(0);
+    ui->stackedWidget->setCurrentWidget(ui->pageDashboard);
 }
 
 
 void MainWindow::on_pushButton_Calibration_clicked()
 {
-    ui->stackedWidget->setCurrentIndex(2);
+    ui->stackedWidget->setCurrentWidget(ui->pageCalibration);
 }
 

@@ -1,0 +1,39 @@
+SP515_Display_2
+
+There’s no title bar, so no close button. 
+To quit during development, press Alt+F4 (or Ctrl+C in the terminal you launched it from)
+
+To apply it, from the project folder on the Pi:
+git pull
+git apply ~/Downloads/numeric-keypad.patch
+
+To check your own folder, run this on the Pi:
+
+bash
+cd ~/Documents/SP515_Display_2
+git status
+git log --oneline -3
+git fetch && git status -sb
+
+How to read the result:
+
+“nothing to commit, working tree clean”: all changes are committed.
+Modified or untracked files listed: those aren’t committed yet.
+“ahead of origin/main”: the commits exist on the Pi but haven’t been pushed to GitHub.
+
+If you haven’t applied the keypad patch yet, there’s nothing new to commit on that front. If you have, commit and push it like this:
+
+bash
+git apply ~/Downloads/numeric-keypad.patch   # skip if already applied
+git add -A
+git status                                    # check that no build/ files are listed
+git commit -m "Add numeric keypad to calibration page"
+git push
+
+How to add a page from now on:
+
+In Qt Designer, right-click the stackedWidget and choose Insert Page After (or Before). Where you put it doesn’t matter now.
+Select the new page and give it a clear objectName in the Property Editor, such as pageSystemInfo.
+Add a button for it, then in the button’s clicked slot write:
+cpp
+ui->stackedWidget->setCurrentWidget(ui->pageSystemInfo);

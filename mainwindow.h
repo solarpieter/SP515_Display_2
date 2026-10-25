@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QTimer>
 #include "numerickeypad.h"
+#include "rs485client.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -69,5 +70,8 @@ private:
     bool darkMode;
     QTimer *clockTimer;
     NumericKeypad *keypad;
+    Rs485Client *rs485;
+    QTimer *pollTimer;
+    bool daemonOk = false;
 };
 #endif // MAINWINDOW_H
