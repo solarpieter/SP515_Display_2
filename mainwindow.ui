@@ -75,7 +75,7 @@
      <number>0</number>
     </property>
     <property name="currentIndex">
-     <number>6</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="pageDashboard">
      <property name="minimumSize">
@@ -949,7 +949,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButtonAlarm_settings">
+        <widget class="QPushButton" name="pushButtonMenu_A5">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -963,7 +963,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Alarm Settings</string>
+          <string/>
          </property>
         </widget>
        </item>
@@ -1615,7 +1615,7 @@
       </property>
       <property name="font">
        <font>
-        <pointsize>36</pointsize>
+        <pointsize>46</pointsize>
         <bold>true</bold>
        </font>
       </property>
@@ -1626,7 +1626,7 @@
         <second>0</second>
         <year>2026</year>
         <month>2</month>
-        <day>2</day>
+        <day>1</day>
        </datetime>
       </property>
       <property name="displayFormat">
@@ -1690,24 +1690,24 @@
        <string>dd/mm/yyyy</string>
       </property>
      </widget>
-    </widget>
-    <widget class="QWidget" name="pageTime_settings">
      <widget class="QTimeEdit" name="timeEdit">
       <property name="geometry">
        <rect>
-        <x>170</x>
-        <y>210</y>
+        <x>650</x>
+        <y>220</y>
         <width>261</width>
         <height>111</height>
        </rect>
       </property>
       <property name="font">
        <font>
-        <pointsize>56</pointsize>
+        <pointsize>46</pointsize>
         <bold>true</bold>
        </font>
       </property>
      </widget>
+    </widget>
+    <widget class="QWidget" name="pageTime_settings">
      <widget class="QPushButton" name="pushButtonTimeBack">
       <property name="geometry">
        <rect>
