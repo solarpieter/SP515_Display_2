@@ -4,6 +4,7 @@
 #include <QGridLayout>
 #include <QKeyEvent>
 #include <QAbstractSpinBox>
+#include <QDateTimeEdit>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QSizePolicy>
@@ -128,7 +129,9 @@ void NumericKeypad::showForEdit(QWidget *edit)
     raise();
     // Select the old value so the first key typed replaces it.
     QTimer::singleShot(0, edit, [edit]() {
-        if (auto *spin = qobject_cast<QAbstractSpinBox *>(edit))
+        if (auto *dt = qobject_cast<QDateTimeEdit *>(edit))
+            dt->setSelectedSection(dt->currentSection());   // date/time: select the tapped section
+        else if (auto *spin = qobject_cast<QAbstractSpinBox *>(edit))
             spin->selectAll();
         else if (auto *line = qobject_cast<QLineEdit *>(edit))
             line->selectAll();

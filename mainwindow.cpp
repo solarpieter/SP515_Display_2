@@ -17,28 +17,15 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     qApp->setStyleSheet(darkTheme);
 
-    ui->dateEdit->setDate(QDate::currentDate());
-    ui->timeEdit->setTime(QTime::currentTime());
+    ui->dateEdit->setDisplayFormat("dd/MM/yyyy");
+    ui->timeEdit->setDisplayFormat("HH:mm:ss");
     ui->radioButtonDark->setChecked(true);
     ui->btnChargerEnable->setChecked(true);
     ui->btnChargerEnable->setText("CHARGER ON");
     clockTimer = new QTimer(this);      //Create timer
-    // Show values immediately
-    ui->label_date_2->setText(
-        QDate::currentDate().toString("dd/MM/yyyy"));
-
-    ui->label_time_2->setText(
-        QTime::currentTime().toString("HH:mm:ss"));
-    // Update every second
-    connect(clockTimer, &QTimer::timeout, this, [this]()
-            {
-                ui->label_date_2->setText(
-                    QDate::currentDate().toString("dd/MM/yyyy"));
-
-                ui->label_time_2->setText(
-                    QTime::currentTime().toString("HH:mm:ss"));
-            });
-
+    // Show values immediately, then update every second
+    updateClockLabels();
+    connect(clockTimer, &QTimer::timeout, this, &MainWindow::updateClockLabels);
     clockTimer->start(1000);
 
     // Numeric keypad for the calibration page: hidden until a value is tapped
@@ -49,6 +36,91 @@ MainWindow::MainWindow(QWidget *parent)
         spin->setLocale(QLocale::c());       // always use "." as the decimal point
         keypad->registerEdit(spin);
     }
+
+    // Numeric keypad for the date and time page. Tap a part of the date or time
+    // (day, month, year, hour...) and type; it moves on to the next part by itself.
+    dateTimeKeypad = new NumericKeypad(ui->pageDate_settings);
+    dateTimeKeypad->registerEdit(ui->dateEdit);
+    dateTimeKeypad->registerEdit(ui->timeEdit);
+
+    // Live data from the rs485d daemon (it handles the RS485 link and CRC).
+    // Ask for the analogue inputs twice a second and show them on the dashboard.
+    rs485 = new Rs485Client(this);
+
+    connect(rs485, &Rs485Client::analogueInputsReceived, this, [this](const Measurements &m)
+            {
+                if (!daemonOk)
+                {
+                    daemonOk = true;
+                    qDebug() << "rs485d: connected";
+                }
+
+                ui->label_batt_volt_value_2->setText(QString::number(m.vBatt, 'f', 1) + " V");
+
+                // The daemon may send only vBatt for now; show "--" for whatever it did not send
+                if (m.complete)
+                {
+                    ui->label_batt_current_value_2->setText(QString::number(m.iBatt, 'f', 1) + " A");
+                    ui->label_batt_mode_value_4->setText(QString::number(m.tBatt, 'f', 1) + " C");
+                    ui->label_load_volt_value_2->setText(QString::number(m.vLoad, 'f', 1) + " V");
+                    ui->label_load_current_value_2->setText(QString::number(m.iLoad, 'f', 1) + " A");
+                }
+                else
+                {
+                    for (QLabel *label : {ui->label_batt_current_value_2,
+                                          ui->label_batt_mode_value_4,
+                                          ui->label_load_volt_value_2,
+                                          ui->label_load_current_value_2})
+                    {
+                        label->setText("--");
+                    }
+                }
+            });
+
+    connect(rs485, &Rs485Client::failed, this, [this](const QString &reason)
+            {
+                if (daemonOk)
+                {
+                    daemonOk = false;
+                    qDebug() << "rs485d: lost connection:" << reason;
+                }
+
+                // Don't leave old numbers on screen as if they were live
+                for (QLabel *label : {ui->label_batt_volt_value_2,
+                                      ui->label_batt_current_value_2,
+                                      ui->label_batt_mode_value_4,
+                                      ui->label_load_volt_value_2,
+                                      ui->label_load_current_value_2})
+                {
+                    label->setText("--");
+                }
+            });
+
+    pollTimer = new QTimer(this);
+    connect(pollTimer, &QTimer::timeout, rs485, &Rs485Client::requestAnalogueInputs);
+    pollTimer->start(500);
+}
+
+// System time plus whatever offset was saved on the date/time page
+QDateTime MainWindow::appNow() const
+{
+    return QDateTime::currentDateTime().addSecs(clockOffsetSecs);
+}
+
+void MainWindow::updateClockLabels()
+{
+    const QDateTime now = appNow();
+    ui->label_date_2->setText(now.date().toString("dd/MM/yyyy"));
+    ui->label_time_2->setText(now.time().toString("HH:mm:ss"));
+}
+
+// Fill the editors with the current date and time, then open the page
+void MainWindow::showDateTimePage()
+{
+    const QDateTime now = appNow();
+    ui->dateEdit->setDate(now.date());
+    ui->timeEdit->setTime(QTime(now.time().hour(), now.time().minute(), now.time().second()));
+    ui->stackedWidget->setCurrentWidget(ui->pageDate_settings);
 }
 
 MainWindow::~MainWindow()
@@ -70,13 +142,14 @@ void MainWindow::on_pushButton_menu_clicked()
 
 void MainWindow::on_pushButtonDate_settings_clicked()
 {
-    ui->stackedWidget->setCurrentWidget(ui->pageDate_settings);
+    showDateTimePage();
 }
 
 
 void MainWindow::on_pushButtonTime_settings_clicked()
 {
-    ui->stackedWidget->setCurrentWidget(ui->pageTime_settings);
+    // Date and time are on one page now, so this button opens the same page
+    showDateTimePage();
 }
 
 
@@ -86,27 +159,18 @@ void MainWindow::on_pushButtonDateBack_clicked()
 }
 
 
-void MainWindow::on_pushButtonTimeBack_clicked()
-{
-    ui->stackedWidget->setCurrentWidget(ui->pageMenu);
-}
-
-
 void MainWindow::on_pushButtonDateSave_clicked()
 {
-    QDate selectedDate = ui->dateEdit->date();
+    // Combine the chosen date and time, and work out how far it is from the system clock
+    const QTime t = ui->timeEdit->time();
+    const QDateTime selected(ui->dateEdit->date(), QTime(t.hour(), t.minute(), t.second()));
+    clockOffsetSecs = selected.toSecsSinceEpoch() - QDateTime::currentSecsSinceEpoch();   // whole seconds, so the saved time shows exactly
 
-    qDebug() << "Selected Date:"
-             << selectedDate.toString("yyyy-MM-dd");
-}
+    qDebug() << "Saved date and time:" << selected.toString("yyyy-MM-dd HH:mm:ss");
 
-
-void MainWindow::on_pushButtonTimeSave_clicked()
-{
-    QTime selectedTime = ui->timeEdit->time();
-
-    qDebug() << "Selected Time:"
-             << selectedTime.toString("HH:mm:ss");
+    updateClockLabels();    // dashboard shows the new date and time straight away
+    clockTimer->start(1000);    // restart the one-second tick so it lines up with the new time
+    ui->stackedWidget->setCurrentWidget(ui->pageDashboard);
 }
 
 

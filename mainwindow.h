@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <QDateTime>
 #include <QMainWindow>
 #include <QTimer>
 #include "numerickeypad.h"
@@ -31,11 +32,7 @@ private slots:
 
     void on_pushButtonDateBack_clicked();
 
-    void on_pushButtonTimeBack_clicked();
-
     void on_pushButtonDateSave_clicked();
-
-    void on_pushButtonTimeSave_clicked();
 
     void on_pushButtonMenuHome_clicked();
 
@@ -70,8 +67,14 @@ private:
     bool darkMode;
     QTimer *clockTimer;
     NumericKeypad *keypad;
+    NumericKeypad *dateTimeKeypad;
+    qint64 clockOffsetSecs = 0;     // set when the date/time is saved; added to the system clock
     Rs485Client *rs485;
     QTimer *pollTimer;
     bool daemonOk = false;
+
+    QDateTime appNow() const;       // system time plus the saved offset
+    void updateClockLabels();       // dashboard date and time
+    void showDateTimePage();        // fill the editors with the current time and open the page
 };
 #endif // MAINWINDOW_H
