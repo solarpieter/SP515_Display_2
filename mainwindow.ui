@@ -75,7 +75,7 @@
      <number>0</number>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>2</number>
     </property>
     <widget class="QWidget" name="pageDashboard">
      <property name="minimumSize">
@@ -1625,8 +1625,8 @@
         <minute>0</minute>
         <second>0</second>
         <year>2026</year>
-        <month>2</month>
-        <day>1</day>
+        <month>1</month>
+        <day>31</day>
        </datetime>
       </property>
       <property name="displayFormat">

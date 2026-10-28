@@ -60,12 +60,26 @@ private slots:
 
     void on_pushButton_Calibration_clicked();
 
+    void on_btn_calibrate_clicked();
+
+    void on_btn_apply_offset_clicked();
+
 private:
     Ui::MainWindow *ui;
     bool darkMode;
     QTimer *clockTimer;
     NumericKeypad *keypad;
     NumericKeypad *dateTimeKeypad;
+    // Calibration page
+    Measurements lastMeasurements;              // latest values from the daemon
+    bool haveMeasurements = false;
+    int calibrationChannel = -1;                // channel being calibrated, -1 when idle
+    double calibrationMeasured = 0.0;           // value typed in by the user
+    double calibrationReading = 0.0;            // what the SP515 was showing at that moment
+    void updateCurrentValueLabel();             // "Current Value" label follows the combo box
+    void setCalibrationBusy(bool busy);
+    void showCalibrationMessage(const QString &text);
+    bool selectedReading(double &value) const;
     qint64 clockOffsetSecs = 0;     // set when the date/time is saved; added to the system clock
     Rs485Client *rs485;
     QTimer *pollTimer;
