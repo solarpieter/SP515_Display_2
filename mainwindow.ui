@@ -1013,7 +1013,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Date Settings</string>
+          <string>Date / Time Settings</string>
          </property>
          <property name="iconSize">
           <size>
@@ -1038,7 +1038,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Time Settings</string>
+          <string/>
          </property>
          <property name="iconSize">
           <size>
@@ -1695,7 +1695,7 @@
        <rect>
         <x>650</x>
         <y>220</y>
-        <width>261</width>
+        <width>300</width>
         <height>111</height>
        </rect>
       </property>

@@ -113,6 +113,43 @@ QPushButton#btnTheme {
     min-height: 50px;
 }
 
+/* Radio buttons */
+QRadioButton {
+    color: white;
+    spacing: 10px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+QRadioButton::indicator {
+    width: 22px;
+    height: 22px;
+    border: 3px solid #FFFFFF;
+    border-radius: 11px;
+    background-color: #000000;
+}
+
+QRadioButton::indicator:checked {
+    background-color: #18CFE0;
+    border: 3px solid #FFFFFF;
+}
+
+/* Number, date and time editors */
+QDoubleSpinBox,
+QDateEdit,
+QTimeEdit {
+    background-color: #000000;
+    color: white;
+    border: 2px solid #707070;
+    border-radius: 8px;
+    padding: 2px;
+}
+
+/* On-screen numeric keypad */
+QFrame#numericKeypad {
+    border: 2px solid #707070;
+    border-radius: 10px;
+}
 
 QPushButton#btnChargerEnable
  {

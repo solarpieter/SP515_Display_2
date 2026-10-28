@@ -146,13 +146,6 @@ void MainWindow::on_pushButtonDate_settings_clicked()
 }
 
 
-void MainWindow::on_pushButtonTime_settings_clicked()
-{
-    // Date and time are on one page now, so this button opens the same page
-    showDateTimePage();
-}
-
-
 void MainWindow::on_pushButtonDateBack_clicked()
 {
      ui->stackedWidget->setCurrentWidget(ui->pageMenu);

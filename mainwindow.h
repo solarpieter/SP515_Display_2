@@ -28,8 +28,6 @@ private slots:
 
     void on_pushButtonDate_settings_clicked();
 
-    void on_pushButtonTime_settings_clicked();
-
     void on_pushButtonDateBack_clicked();
 
     void on_pushButtonDateSave_clicked();
