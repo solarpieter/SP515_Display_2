@@ -73,6 +73,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Numeric keypad for the calibration page: hidden until a value is tapped
     keypad = new NumericKeypad(ui->pageCalibration);
+    keypad->setKeySize(84, 72);
     for (QDoubleSpinBox *spin : {ui->spin_measured_value, ui->spin_offset_value})
     {
         spin->setRange(-9999.99, 9999.99);   // allow negative values; adjust as needed

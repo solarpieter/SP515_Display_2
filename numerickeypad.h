@@ -2,9 +2,12 @@
 #define NUMERICKEYPAD_H
 
 #include <QFrame>
+#include <QList>
 #include <QPointer>
 #include <QSet>
 
+class QGridLayout;
+class QPushButton;
 class QWidget;
 
 // On-screen numeric keypad: 0-9, minus, decimal point, backspace and enter.
@@ -23,6 +26,9 @@ public:
     // spin box (QSpinBox / QDoubleSpinBox).
     void registerEdit(QWidget *edit);
 
+    // Size of each key in pixels (default 70 x 60). The text grows with the key height.
+    void setKeySize(int width, int height);
+
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
@@ -34,6 +40,8 @@ private:
     void hideIfNoEditFocused();
     void reposition();
 
+    QList<QPushButton *> m_buttons;
+    QGridLayout *m_grid = nullptr;
     QPointer<QWidget> m_target;
     QSet<QWidget *> m_edits;
 };

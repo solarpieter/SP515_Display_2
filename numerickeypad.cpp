@@ -25,6 +25,7 @@ void NumericKeypad::buildButtons()
 {
     auto *grid = new QGridLayout(this);
     grid->setSpacing(6);
+    m_grid = grid;
 
     // Helper: creates a button that never takes focus, so the line edit
     // keeps focus (and the cursor) while the keypad is used.
@@ -32,6 +33,7 @@ void NumericKeypad::buildButtons()
         auto *b = new QPushButton(label, this);
         b->setFocusPolicy(Qt::NoFocus);
         b->setMinimumSize(70, 60);
+        m_buttons.append(b);
         return b;
     };
 
@@ -78,6 +80,21 @@ void NumericKeypad::buildButtons()
         hide();
     });
     grid->addWidget(enter, 1, 3, 3, 1);       // tall button spanning three rows
+}
+
+void NumericKeypad::setKeySize(int width, int height)
+{
+    for (QPushButton *b : m_buttons)
+        b->setMinimumSize(width, height);
+
+    m_grid->setSpacing(qMax(6, height / 9));
+
+    // The theme sets the button text size, so set it here the same way
+    setStyleSheet(QString("QPushButton { font-size: %1px; }").arg(qRound(height * 0.38)));
+
+    adjustSize();
+    if (isVisible())
+        reposition();
 }
 
 void NumericKeypad::registerEdit(QWidget *edit)
