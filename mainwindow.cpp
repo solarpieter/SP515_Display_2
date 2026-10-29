@@ -158,12 +158,12 @@ MainWindow::MainWindow(QWidget *parent)
     {
         calibrationProgress->setRange(0, 100);
         calibrationProgress->setTextVisible(false);
-        calibrationProgress->hide();
+        calibrationProgress->setValue(0);               // always visible, empty until a run starts
         calibrationAnimation = new QPropertyAnimation(calibrationProgress, "value", this);
         calibrationAnimation->setDuration(3000);        // how long a calibration run lasts
         calibrationAnimation->setStartValue(0);
         calibrationAnimation->setEndValue(100);
-        connect(calibrationAnimation, &QPropertyAnimation::finished, this, &MainWindow::endCalibrationRun);
+        connect(calibrationAnimation, &QPropertyAnimation::finished, this, &MainWindow::calibrationBarFinished);
     }
     if (calibrateResultLabel)
         calibrateResultLabel->hide();
@@ -184,10 +184,9 @@ MainWindow::MainWindow(QWidget *parent)
                                       calibrationReading, calibrationMeasured, newGain))
                 {
                     calibrationChannel = -1;
-                    reportCalibrationResult(false);
-                    showCalibrationMessage("These values cannot be calibrated.\n"
-                                           "The reading must not be zero, and the measured value must be "
-                                           "within a factor of 10 of the reading.");
+                    reportCalibrationResult(false, "These values cannot be calibrated.\n"
+                                                   "The reading must not be zero, and the measured value must be "
+                                                   "within a factor of 10 of the reading.");
                     return;
                 }
                 rs485->setAnalogueGain(quint8(channel), float(newGain));
@@ -203,9 +202,7 @@ MainWindow::MainWindow(QWidget *parent)
                     return;                                 // the gain is calculated and sent next
 
                 calibrationChannel = -1;
-                reportCalibrationResult(ok);
-                if (!ok)
-                    showCalibrationMessage("Calibration failed:\n" + message);
+                reportCalibrationResult(ok, "Calibration failed:\n" + message);
             });
     updateCurrentValueLabel();
 
@@ -238,6 +235,10 @@ void MainWindow::showDateTimePage()
 
 MainWindow::~MainWindow()
 {
+    // Stop talking to the daemon before the user interface is deleted
+    pollTimer->stop();
+    rs485->disconnect(this);
+
     delete ui;
 }
 
@@ -408,11 +409,14 @@ void MainWindow::setCalibrationBusy(bool busy)
     ui->combo_calibration_target->setEnabled(!busy);
 }
 
-// A run starts when Calibrate or Apply Offset is pressed. The buttons stay off for
-// the whole 3 seconds, so they cannot be pressed again too quickly.
+// A run starts when Calibrate or Apply Offset is pressed. The buttons stay off until
+// the bar is full and the result is shown, so they cannot be pressed again too quickly.
+// The result is only displayed once the bar has run to 100 %, so every run takes 3 seconds.
 void MainWindow::startCalibrationRun(CalibrationOp op)
 {
     calibrationOp = op;
+    calibrationBarFull = false;
+    calibrationResultKnown = false;
     setCalibrationBusy(true);
 
     if (calibrateResultLabel)
@@ -424,38 +428,51 @@ void MainWindow::startCalibrationRun(CalibrationOp op)
     {
         calibrationProgress->setStyleSheet(QString());      // back to the theme colour
         calibrationProgress->setValue(0);
-        calibrationProgress->show();
     }
     if (calibrationAnimation)
         calibrationAnimation->start();
     else
-        QTimer::singleShot(3000, this, &MainWindow::endCalibrationRun);   // no progress bar on the page
+        QTimer::singleShot(3000, this, &MainWindow::calibrationBarFinished);   // no progress bar on the page
 }
 
-// Shown as soon as the result is known, next to the button that was pressed
-void MainWindow::reportCalibrationResult(bool ok)
+// The SP515 has answered (or the request was refused). Remember it; it is shown once the bar is full.
+void MainWindow::reportCalibrationResult(bool ok, const QString &failMessage)
+{
+    calibrationResultOk = ok;
+    calibrationFailMessage = failMessage;
+    calibrationResultKnown = true;
+
+    if (calibrationBarFull)
+        showCalibrationResult();            // the answer was slower than the bar
+}
+
+void MainWindow::calibrationBarFinished()
+{
+    calibrationBarFull = true;
+    if (calibrationResultKnown)
+        showCalibrationResult();            // otherwise it is shown when the answer arrives
+}
+
+// Green OK or red FAIL next to the button that was pressed. It stays until the next press.
+void MainWindow::showCalibrationResult()
 {
     QLabel *label = (calibrationOp == CalibrationOp::ApplyOffset) ? offsetResultLabel : calibrateResultLabel;
     if (label)
     {
-        label->setText(ok ? "OK" : "FAIL");
-        label->setStyleSheet(ok ? "color: #22B14C; font-weight: bold;"
-                                : "color: #FF3B30; font-weight: bold;");
+        label->setText(calibrationResultOk ? "OK" : "FAIL");
+        label->setStyleSheet(calibrationResultOk ? "color: #22B14C; font-weight: bold;"
+                                                 : "color: #FF3B30; font-weight: bold;");
         label->show();
     }
-    if (!ok && calibrationProgress)
-        calibrationProgress->setStyleSheet("QProgressBar::chunk { background-color: #FF3B30; }");
-}
+    if (!calibrationResultOk)
+    {
+        if (calibrationProgress)
+            calibrationProgress->setStyleSheet("QProgressBar::chunk { background-color: #FF3B30; }");
+        showCalibrationMessage(calibrationFailMessage);
+    }
 
-void MainWindow::endCalibrationRun()
-{
     calibrationOp = CalibrationOp::None;
-    if (calibrationProgress)
-        calibrationProgress->hide();
-    if (calibrateResultLabel)
-        calibrateResultLabel->hide();
-    if (offsetResultLabel)
-        offsetResultLabel->hide();
+    calibrationResultKnown = false;
     setCalibrationBusy(false);
 }
 
@@ -485,8 +502,7 @@ void MainWindow::on_btn_calibrate_clicked()
     double reading = 0.0;
     if (!selectedReading(reading))
     {
-        reportCalibrationResult(false);
-        showCalibrationMessage("No reading available from the SP515.");
+        reportCalibrationResult(false, "No reading available from the SP515.");
         return;
     }
 
@@ -514,5 +530,11 @@ void MainWindow::on_btn_apply_offset_clicked()
 void MainWindow::on_pushButton_6_clicked()
 {
 ui->stackedWidget->setCurrentWidget(ui->pageMenu);
+}
+
+
+void MainWindow::on_pushButton_menu_2_clicked()
+{
+ ui->stackedWidget->setCurrentWidget(ui->pageMenu);
 }
 

@@ -69,6 +69,8 @@ private slots:
 
     void on_pushButton_6_clicked();
 
+    void on_pushButton_menu_2_clicked();
+
 private:
     Ui::MainWindow *ui;
     bool darkMode;
@@ -91,9 +93,14 @@ private:
     QLabel *calibrateResultLabel = nullptr;
     QLabel *offsetResultLabel = nullptr;
     QPropertyAnimation *calibrationAnimation = nullptr;
+    bool calibrationBarFull = true;                 // the bar has run to 100 %
+    bool calibrationResultKnown = false;            // the SP515 has answered (or the request was refused)
+    bool calibrationResultOk = false;
+    QString calibrationFailMessage;                 // popup text, shown together with FAIL
     void startCalibrationRun(CalibrationOp op);     // buttons off, progress bar runs for 3 s
-    void reportCalibrationResult(bool ok);          // green OK or red FAIL next to the button
-    void endCalibrationRun();                       // bar and labels hidden, buttons on again
+    void reportCalibrationResult(bool ok, const QString &failMessage = QString());   // remember the result
+    void calibrationBarFinished();                  // bar is full: show the result if it is known
+    void showCalibrationResult();                   // green OK or red FAIL (+ popup), buttons on again
     void showCalibrationMessage(const QString &text);
     bool selectedReading(double &value) const;
     qint64 clockOffsetSecs = 0;     // set when the date/time is saved; added to the system clock
