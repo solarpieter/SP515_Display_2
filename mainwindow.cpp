@@ -9,6 +9,7 @@
 #include <QDebug>
 #include <QTimer>
 #include <QMessageBox>
+#include <QProgressBar>
 #include <cmath>
 
 // ---- Calibration -----------------------------------------------------------
@@ -147,6 +148,28 @@ MainWindow::MainWindow(QWidget *parent)
                 }
             });
 
+    // Calibration page: progress bar and the OK / FAIL labels (found by name, hidden until used)
+    calibrationProgress  = ui->pageCalibration->findChild<QProgressBar *>("progress_calibration");
+    calibrateResultLabel = ui->pageCalibration->findChild<QLabel *>("label_calibrate_result");
+    offsetResultLabel    = ui->pageCalibration->findChild<QLabel *>("label_offset_result");
+    if (!calibrationProgress || !calibrateResultLabel || !offsetResultLabel)
+        qWarning() << "Calibration page: progress_calibration, label_calibrate_result or label_offset_result not found";
+    if (calibrationProgress)
+    {
+        calibrationProgress->setRange(0, 100);
+        calibrationProgress->setTextVisible(false);
+        calibrationProgress->hide();
+        calibrationAnimation = new QPropertyAnimation(calibrationProgress, "value", this);
+        calibrationAnimation->setDuration(3000);        // how long a calibration run lasts
+        calibrationAnimation->setStartValue(0);
+        calibrationAnimation->setEndValue(100);
+        connect(calibrationAnimation, &QPropertyAnimation::finished, this, &MainWindow::endCalibrationRun);
+    }
+    if (calibrateResultLabel)
+        calibrateResultLabel->hide();
+    if (offsetResultLabel)
+        offsetResultLabel->hide();
+
     // Calibration page: the "Current Value" label follows the selected item
     connect(ui->combo_calibration_target, qOverload<int>(&QComboBox::currentIndexChanged),
             this, [this](int) { updateCurrentValueLabel(); });
@@ -161,7 +184,7 @@ MainWindow::MainWindow(QWidget *parent)
                                       calibrationReading, calibrationMeasured, newGain))
                 {
                     calibrationChannel = -1;
-                    setCalibrationBusy(false);
+                    reportCalibrationResult(false);
                     showCalibrationMessage("These values cannot be calibrated.\n"
                                            "The reading must not be zero, and the measured value must be "
                                            "within a factor of 10 of the reading.");
@@ -180,7 +203,7 @@ MainWindow::MainWindow(QWidget *parent)
                     return;                                 // the gain is calculated and sent next
 
                 calibrationChannel = -1;
-                setCalibrationBusy(false);
+                reportCalibrationResult(ok);
                 if (!ok)
                     showCalibrationMessage("Calibration failed:\n" + message);
             });
@@ -385,6 +408,57 @@ void MainWindow::setCalibrationBusy(bool busy)
     ui->combo_calibration_target->setEnabled(!busy);
 }
 
+// A run starts when Calibrate or Apply Offset is pressed. The buttons stay off for
+// the whole 3 seconds, so they cannot be pressed again too quickly.
+void MainWindow::startCalibrationRun(CalibrationOp op)
+{
+    calibrationOp = op;
+    setCalibrationBusy(true);
+
+    if (calibrateResultLabel)
+        calibrateResultLabel->hide();
+    if (offsetResultLabel)
+        offsetResultLabel->hide();
+
+    if (calibrationProgress)
+    {
+        calibrationProgress->setStyleSheet(QString());      // back to the theme colour
+        calibrationProgress->setValue(0);
+        calibrationProgress->show();
+    }
+    if (calibrationAnimation)
+        calibrationAnimation->start();
+    else
+        QTimer::singleShot(3000, this, &MainWindow::endCalibrationRun);   // no progress bar on the page
+}
+
+// Shown as soon as the result is known, next to the button that was pressed
+void MainWindow::reportCalibrationResult(bool ok)
+{
+    QLabel *label = (calibrationOp == CalibrationOp::ApplyOffset) ? offsetResultLabel : calibrateResultLabel;
+    if (label)
+    {
+        label->setText(ok ? "OK" : "FAIL");
+        label->setStyleSheet(ok ? "color: #22B14C; font-weight: bold;"
+                                : "color: #FF3B30; font-weight: bold;");
+        label->show();
+    }
+    if (!ok && calibrationProgress)
+        calibrationProgress->setStyleSheet("QProgressBar::chunk { background-color: #FF3B30; }");
+}
+
+void MainWindow::endCalibrationRun()
+{
+    calibrationOp = CalibrationOp::None;
+    if (calibrationProgress)
+        calibrationProgress->hide();
+    if (calibrateResultLabel)
+        calibrateResultLabel->hide();
+    if (offsetResultLabel)
+        offsetResultLabel->hide();
+    setCalibrationBusy(false);
+}
+
 void MainWindow::showCalibrationMessage(const QString &text)
 {
     // Not modal-blocking, so the display keeps updating behind it
@@ -406,9 +480,12 @@ void MainWindow::on_btn_calibrate_clicked()
 {
     ui->spin_measured_value->interpretText();       // pick up a value typed but not yet confirmed
 
+    startCalibrationRun(CalibrationOp::Calibrate);
+
     double reading = 0.0;
     if (!selectedReading(reading))
     {
+        reportCalibrationResult(false);
         showCalibrationMessage("No reading available from the SP515.");
         return;
     }
@@ -417,7 +494,6 @@ void MainWindow::on_btn_calibrate_clicked()
     calibrationMeasured = ui->spin_measured_value->value();
     calibrationReading  = reading;
 
-    setCalibrationBusy(true);
     rs485->requestAnalogueCalibration();            // the new gain is worked out when this arrives
 }
 
@@ -430,8 +506,8 @@ void MainWindow::on_btn_apply_offset_clicked()
     if (channel < 0 || channel >= calibrationChannelCount)
         return;
 
+    startCalibrationRun(CalibrationOp::ApplyOffset);
     calibrationChannel = channel;
-    setCalibrationBusy(true);
     rs485->setAnalogueOffset(quint8(channel), float(ui->spin_offset_value->value()));
 }
 

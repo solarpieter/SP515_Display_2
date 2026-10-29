@@ -144,6 +144,18 @@ QTimeEdit {
     padding: 2px;
 }
 
+/* Progress bar */
+QProgressBar {
+    background-color: white;
+    border: 2px solid #C0C0C0;
+    border-radius: 6px;
+}
+
+QProgressBar::chunk {
+    background-color: #1997FF;
+    border-radius: 4px;
+}
+
 /* On-screen numeric keypad */
 QFrame#numericKeypad {
     border: 2px solid #C0C0C0;

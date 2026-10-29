@@ -2,6 +2,9 @@
 #define MAINWINDOW_H
 
 #include <QDateTime>
+#include <QLabel>
+#include <QProgressBar>
+#include <QPropertyAnimation>
 #include <QMainWindow>
 #include <QTimer>
 #include "numerickeypad.h"
@@ -80,6 +83,17 @@ private:
     double calibrationReading = 0.0;            // what the SP515 was showing at that moment
     void updateCurrentValueLabel();             // "Current Value" label follows the combo box
     void setCalibrationBusy(bool busy);
+
+    // Progress bar and OK / FAIL labels on the calibration page
+    enum class CalibrationOp { None, Calibrate, ApplyOffset };
+    CalibrationOp calibrationOp = CalibrationOp::None;
+    QProgressBar *calibrationProgress = nullptr;
+    QLabel *calibrateResultLabel = nullptr;
+    QLabel *offsetResultLabel = nullptr;
+    QPropertyAnimation *calibrationAnimation = nullptr;
+    void startCalibrationRun(CalibrationOp op);     // buttons off, progress bar runs for 3 s
+    void reportCalibrationResult(bool ok);          // green OK or red FAIL next to the button
+    void endCalibrationRun();                       // bar and labels hidden, buttons on again
     void showCalibrationMessage(const QString &text);
     bool selectedReading(double &value) const;
     qint64 clockOffsetSecs = 0;     // set when the date/time is saved; added to the system clock
