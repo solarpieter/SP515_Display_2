@@ -389,6 +389,13 @@ void MainWindow::showCalibrationMessage(const QString &text)
     // Not modal-blocking, so the display keeps updating behind it
     auto *box = new QMessageBox(QMessageBox::Warning, "Calibration", text, QMessageBox::Ok, this);
     box->setAttribute(Qt::WA_DeleteOnClose);
+
+    // Bigger text and button, so it is easy to read and to tap on the touch screen
+    QFont font = box->font();
+    font.setPixelSize(20);
+    box->setFont(font);
+    box->setStyleSheet("QMessageBox { min-width: 520px; }"
+                       "QPushButton { min-width: 140px; min-height: 50px; }");
     box->open();
 }
 
@@ -429,6 +436,6 @@ void MainWindow::on_btn_apply_offset_clicked()
 
 void MainWindow::on_pushButton_6_clicked()
 {
-
+ui->stackedWidget->setCurrentWidget(ui->pageMenu);
 }
 

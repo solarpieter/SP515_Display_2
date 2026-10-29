@@ -1456,7 +1456,7 @@
       </item>
       <item>
        <property name="text">
-        <string>RIPPLE VOLTAGE</string>
+        <string> RIPPLE VOLTAGE</string>
        </property>
       </item>
      </widget>
