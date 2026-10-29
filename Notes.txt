@@ -1,5 +1,12 @@
 SP515_Display_2
 
+Build and Run Daemon
+cd Documents/SP515v1-rpi
+rm -rf build rs485d
+make
+ls -l rs485d
+./rs485d
+
 There’s no title bar, so no close button. 
 To quit during development, press Alt+F4 (or Ctrl+C in the terminal you launched it from)
 
