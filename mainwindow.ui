@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1280</width>
-    <height>654</height>
+    <height>720</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -96,7 +96,7 @@
         <x>10</x>
         <y>10</y>
         <width>1261</width>
-        <height>66</height>
+        <height>101</height>
        </rect>
       </property>
       <property name="frameShape">
@@ -109,6 +109,35 @@
        <number>2</number>
       </property>
       <layout class="QGridLayout" name="gridLayout">
+       <item row="0" column="3">
+        <spacer name="horizontalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Policy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>160</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="0" column="4">
+        <widget class="QLabel" name="label_time_2">
+         <property name="font">
+          <font>
+           <pointsize>22</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Time</string>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="0">
         <widget class="QLabel" name="label_system_status_2">
          <property name="font">
@@ -122,7 +151,7 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="1">
+       <item row="0" column="2">
         <widget class="QLabel" name="label_date_2">
          <property name="font">
           <font>
@@ -135,18 +164,21 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="2">
-        <widget class="QLabel" name="label_time_2">
-         <property name="font">
-          <font>
-           <pointsize>22</pointsize>
-           <bold>true</bold>
-          </font>
+       <item row="0" column="1">
+        <spacer name="horizontalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
          </property>
-         <property name="text">
-          <string>Time</string>
+         <property name="sizeType">
+          <enum>QSizePolicy::Policy::Fixed</enum>
          </property>
-        </widget>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>420</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
        </item>
       </layout>
      </widget>
@@ -154,7 +186,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>80</y>
+        <y>160</y>
         <width>1261</width>
         <height>121</height>
        </rect>
@@ -174,7 +206,7 @@
          <widget class="QLabel" name="label_battery_voltage_2">
           <property name="geometry">
            <rect>
-            <x>10</x>
+            <x>20</x>
             <y>10</y>
             <width>231</width>
             <height>41</height>
@@ -182,7 +214,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>16</pointsize>
+            <pointsize>18</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -207,7 +239,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>26</pointsize>
+            <pointsize>30</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -243,7 +275,7 @@
          <widget class="QLabel" name="label_battery_current_2">
           <property name="geometry">
            <rect>
-            <x>10</x>
+            <x>20</x>
             <y>10</y>
             <width>231</width>
             <height>41</height>
@@ -251,7 +283,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>16</pointsize>
+            <pointsize>18</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -273,7 +305,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>26</pointsize>
+            <pointsize>30</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -308,7 +340,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>16</pointsize>
+            <pointsize>18</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -330,7 +362,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>26</pointsize>
+            <pointsize>30</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -365,7 +397,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>16</pointsize>
+            <pointsize>18</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -387,7 +419,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>26</pointsize>
+            <pointsize>30</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -406,7 +438,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>210</y>
+        <y>300</y>
         <width>1261</width>
         <height>121</height>
        </rect>
@@ -426,7 +458,7 @@
          <widget class="QLabel" name="label_load_voltage_2">
           <property name="geometry">
            <rect>
-            <x>10</x>
+            <x>20</x>
             <y>10</y>
             <width>201</width>
             <height>41</height>
@@ -434,7 +466,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>13</pointsize>
+            <pointsize>18</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -456,7 +488,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>26</pointsize>
+            <pointsize>30</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -483,7 +515,7 @@
          <widget class="QLabel" name="label_load_current_3">
           <property name="geometry">
            <rect>
-            <x>10</x>
+            <x>20</x>
             <y>10</y>
             <width>201</width>
             <height>41</height>
@@ -491,7 +523,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>13</pointsize>
+            <pointsize>18</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -513,7 +545,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>26</pointsize>
+            <pointsize>30</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -540,7 +572,7 @@
          <widget class="QLabel" name="label_system_alarms_2">
           <property name="geometry">
            <rect>
-            <x>10</x>
+            <x>40</x>
             <y>10</y>
             <width>201</width>
             <height>41</height>
@@ -548,7 +580,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>13</pointsize>
+            <pointsize>18</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -562,15 +594,15 @@
          <widget class="QLabel" name="label_alarms_value_2">
           <property name="geometry">
            <rect>
-            <x>0</x>
+            <x>10</x>
             <y>50</y>
-            <width>211</width>
+            <width>291</width>
             <height>61</height>
            </rect>
           </property>
           <property name="font">
            <font>
-            <pointsize>20</pointsize>
+            <pointsize>30</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -602,7 +634,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>340</y>
+        <y>440</y>
         <width>1261</width>
         <height>121</height>
        </rect>
@@ -666,7 +698,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>470</y>
+        <y>590</y>
         <width>1261</width>
         <height>131</height>
        </rect>
@@ -674,6 +706,12 @@
       <layout class="QHBoxLayout" name="horizontalLayout_4">
        <item>
         <widget class="QPushButton" name="pushButton_home">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>100</height>
+          </size>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -682,14 +720,20 @@
          </property>
          <property name="iconSize">
           <size>
-           <width>60</width>
-           <height>60</height>
+           <width>80</width>
+           <height>80</height>
           </size>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QPushButton" name="pushButton_menu">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>100</height>
+          </size>
+         </property>
          <property name="font">
           <font>
            <pointsize>16</pointsize>
@@ -703,14 +747,20 @@
          </property>
          <property name="iconSize">
           <size>
-           <width>60</width>
-           <height>60</height>
+           <width>80</width>
+           <height>80</height>
           </size>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QPushButton" name="pushButton">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>100</height>
+          </size>
+         </property>
          <property name="font">
           <font>
            <pointsize>16</pointsize>
@@ -724,14 +774,20 @@
          </property>
          <property name="iconSize">
           <size>
-           <width>60</width>
-           <height>60</height>
+           <width>80</width>
+           <height>80</height>
           </size>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QPushButton" name="pushButton_2">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>100</height>
+          </size>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -740,14 +796,20 @@
          </property>
          <property name="iconSize">
           <size>
-           <width>60</width>
-           <height>60</height>
+           <width>80</width>
+           <height>80</height>
           </size>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QPushButton" name="pushButton_3">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>100</height>
+          </size>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -756,14 +818,20 @@
          </property>
          <property name="iconSize">
           <size>
-           <width>60</width>
-           <height>60</height>
+           <width>80</width>
+           <height>80</height>
           </size>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QPushButton" name="pushButton_4">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>100</height>
+          </size>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -772,8 +840,8 @@
          </property>
          <property name="iconSize">
           <size>
-           <width>60</width>
-           <height>60</height>
+           <width>80</width>
+           <height>80</height>
           </size>
          </property>
         </widget>
@@ -785,10 +853,10 @@
      <widget class="QPushButton" name="pushButtonMenuBack">
       <property name="geometry">
        <rect>
-        <x>280</x>
-        <y>530</y>
-        <width>171</width>
-        <height>61</height>
+        <x>310</x>
+        <y>580</y>
+        <width>205</width>
+        <height>100</height>
        </rect>
       </property>
       <property name="font">
@@ -805,10 +873,22 @@
       <property name="geometry">
        <rect>
         <x>90</x>
-        <y>530</y>
-        <width>171</width>
-        <height>61</height>
+        <y>580</y>
+        <width>205</width>
+        <height>100</height>
        </rect>
+      </property>
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>100</width>
+        <height>100</height>
+       </size>
       </property>
       <property name="font">
        <font>
@@ -817,29 +897,49 @@
        </font>
       </property>
       <property name="text">
-       <string>HOME</string>
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset theme="QIcon::ThemeIcon::GoHome"/>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>80</width>
+        <height>80</height>
+       </size>
       </property>
      </widget>
      <widget class="QPushButton" name="pushButton_5">
       <property name="geometry">
        <rect>
-        <x>490</x>
-        <y>530</y>
-        <width>231</width>
-        <height>61</height>
+        <x>530</x>
+        <y>580</y>
+        <width>205</width>
+        <height>100</height>
        </rect>
       </property>
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>100</width>
+        <height>100</height>
+       </size>
+      </property>
       <property name="text">
-       <string>LOGIN</string>
+       <string/>
       </property>
       <property name="icon">
-       <iconset>
-        <normaloff>Recources/ICON/accounts.svg</normaloff>Recources/ICON/accounts.svg</iconset>
+       <iconset theme="QIcon::ThemeIcon::DialogPassword"/>
       </property>
       <property name="iconSize">
        <size>
-        <width>60</width>
-        <height>60</height>
+        <width>80</width>
+        <height>80</height>
        </size>
       </property>
      </widget>
@@ -1158,14 +1258,23 @@
      <widget class="QPushButton" name="pushButton_12">
       <property name="geometry">
        <rect>
-        <x>580</x>
-        <y>540</y>
-        <width>126</width>
-        <height>37</height>
+        <x>20</x>
+        <y>600</y>
+        <width>205</width>
+        <height>100</height>
        </rect>
       </property>
       <property name="text">
-       <string>HOME</string>
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset theme="QIcon::ThemeIcon::GoHome"/>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>80</width>
+        <height>80</height>
+       </size>
       </property>
       <property name="default">
        <bool>false</bool>
@@ -1174,197 +1283,248 @@
        <bool>false</bool>
       </property>
      </widget>
-     <widget class="QWidget" name="gridLayoutWidget">
+     <widget class="QPushButton" name="pushButton_6">
       <property name="geometry">
        <rect>
-        <x>330</x>
-        <y>10</y>
-        <width>651</width>
-        <height>321</height>
+        <x>240</x>
+        <y>600</y>
+        <width>205</width>
+        <height>100</height>
        </rect>
       </property>
-      <layout class="QGridLayout" name="gridLayout_3">
-       <item row="2" column="1">
-        <widget class="QDoubleSpinBox" name="spin_offset_value">
-         <property name="font">
-          <font>
-           <pointsize>26</pointsize>
-          </font>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignmentFlag::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLabel" name="label_current_value">
-         <property name="font">
-          <font>
-           <pointsize>26</pointsize>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="frameShape">
-          <enum>QFrame::Shape::Box</enum>
-         </property>
-         <property name="frameShadow">
-          <enum>QFrame::Shadow::Plain</enum>
-         </property>
-         <property name="lineWidth">
-          <number>8</number>
-         </property>
-         <property name="midLineWidth">
-          <number>1</number>
-         </property>
-         <property name="text">
-          <string>Current Value</string>
-         </property>
-         <property name="textFormat">
-          <enum>Qt::TextFormat::AutoText</enum>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignmentFlag::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="3">
-        <widget class="QPushButton" name="btn_apply_offset">
-         <property name="font">
-          <font>
-           <pointsize>20</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>Apply Offset</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="3">
-        <widget class="QPushButton" name="btn_calibrate">
-         <property name="font">
-          <font>
-           <pointsize>20</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>Calibrate</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QDoubleSpinBox" name="spin_measured_value">
-         <property name="font">
-          <font>
-           <pointsize>26</pointsize>
-          </font>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignmentFlag::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="2">
-        <spacer name="horizontalSpacer">
-         <property name="orientation">
-          <enum>Qt::Orientation::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="0" column="3">
-        <widget class="QComboBox" name="combo_calibration_target">
-         <property name="enabled">
-          <bool>true</bool>
-         </property>
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="font">
-          <font>
-           <pointsize>20</pointsize>
-           <bold>true</bold>
-           <stylestrategy>PreferAntialias</stylestrategy>
-           <kerning>true</kerning>
-           <hintingpreference>PreferDefaultHinting</hintingpreference>
-          </font>
-         </property>
-         <property name="layoutDirection">
-          <enum>Qt::LayoutDirection::LeftToRight</enum>
-         </property>
-         <property name="autoFillBackground">
-          <bool>true</bool>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>16</width>
-           <height>16</height>
-          </size>
-         </property>
-         <property name="frame">
-          <bool>false</bool>
-         </property>
-         <item>
-          <property name="text">
-           <string>BATTERY VOLTAGE</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>RECTIFIER VOLTAGE</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>LOAD VOLTAGE</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>BATTERY CURRENT</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>RECTIFIER CURRENT</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>LOAD CURRENT</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>BATTERY TEMPERATURE</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>EARTH FAULT</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>RIPPLE VOLTAGE</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-      </layout>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset theme="QIcon::ThemeIcon::GoPrevious"/>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>80</width>
+        <height>80</height>
+       </size>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="btn_apply_offset">
+      <property name="geometry">
+       <rect>
+        <x>722</x>
+        <y>280</y>
+        <width>180</width>
+        <height>60</height>
+       </rect>
+      </property>
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>20</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>Apply Offset</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_current_value">
+      <property name="geometry">
+       <rect>
+        <x>410</x>
+        <y>68</y>
+        <width>221</width>
+        <height>60</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>26</pointsize>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::Shape::Box</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Shadow::Plain</enum>
+      </property>
+      <property name="lineWidth">
+       <number>2</number>
+      </property>
+      <property name="midLineWidth">
+       <number>1</number>
+      </property>
+      <property name="text">
+       <string>Current Value</string>
+      </property>
+      <property name="textFormat">
+       <enum>Qt::TextFormat::AutoText</enum>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignmentFlag::AlignCenter</set>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="combo_calibration_target">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>722</x>
+        <y>68</y>
+        <width>350</width>
+        <height>60</height>
+       </rect>
+      </property>
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>20</pointsize>
+        <bold>true</bold>
+        <stylestrategy>PreferAntialias</stylestrategy>
+        <kerning>true</kerning>
+        <hintingpreference>PreferDefaultHinting</hintingpreference>
+       </font>
+      </property>
+      <property name="layoutDirection">
+       <enum>Qt::LayoutDirection::LeftToRight</enum>
+      </property>
+      <property name="autoFillBackground">
+       <bool>true</bool>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>16</width>
+        <height>16</height>
+       </size>
+      </property>
+      <property name="frame">
+       <bool>false</bool>
+      </property>
+      <item>
+       <property name="text">
+        <string> BATTERY VOLTAGE</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string> RECTIFIER VOLTAGE</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string> LOAD VOLTAGE</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string> BATTERY CURRENT</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string> RECTIFIER CURRENT</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string> LOAD CURRENT</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string> BATTERY TEMPERATURE</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string> EARTH FAULT</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>RIPPLE VOLTAGE</string>
+       </property>
+      </item>
+     </widget>
+     <widget class="QPushButton" name="btn_calibrate">
+      <property name="geometry">
+       <rect>
+        <x>722</x>
+        <y>170</y>
+        <width>180</width>
+        <height>60</height>
+       </rect>
+      </property>
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>20</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>Calibrate</string>
+      </property>
+     </widget>
+     <widget class="QDoubleSpinBox" name="spin_offset_value">
+      <property name="geometry">
+       <rect>
+        <x>410</x>
+        <y>280</y>
+        <width>221</width>
+        <height>60</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>26</pointsize>
+       </font>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignmentFlag::AlignCenter</set>
+      </property>
+      <property name="maximum">
+       <double>999.990000000000009</double>
+      </property>
+     </widget>
+     <widget class="QDoubleSpinBox" name="spin_measured_value">
+      <property name="geometry">
+       <rect>
+        <x>410</x>
+        <y>170</y>
+        <width>221</width>
+        <height>60</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>26</pointsize>
+       </font>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignmentFlag::AlignCenter</set>
+      </property>
+      <property name="maximum">
+       <double>999.990000000000009</double>
+      </property>
      </widget>
     </widget>
     <widget class="QWidget" name="pageBattery_settings">
@@ -1626,7 +1786,7 @@
         <second>0</second>
         <year>2026</year>
         <month>1</month>
-        <day>31</day>
+        <day>30</day>
        </datetime>
       </property>
       <property name="displayFormat">
@@ -1792,17 +1952,6 @@
     </widget>
    </widget>
   </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>1280</width>
-     <height>35</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <resources/>
  <connections/>

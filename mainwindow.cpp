@@ -426,3 +426,9 @@ void MainWindow::on_btn_apply_offset_clicked()
     setCalibrationBusy(true);
     rs485->setAnalogueOffset(quint8(channel), float(ui->spin_offset_value->value()));
 }
+
+void MainWindow::on_pushButton_6_clicked()
+{
+
+}
+

@@ -64,6 +64,8 @@ private slots:
 
     void on_btn_apply_offset_clicked();
 
+    void on_pushButton_6_clicked();
+
 private:
     Ui::MainWindow *ui;
     bool darkMode;
