@@ -41,6 +41,7 @@ QFrame#frame_dashboard_12,
 QFrame#frame_battery_voltage_2,
 QFrame#frame_battery_current_2,
 QFrame#frame_system_alarms_2,
+QFrame#frame_screen_power,
 QComboBox#combo_calibration_target
 {
     background-color: #000000;
@@ -129,6 +130,7 @@ QRadioButton::indicator:checked {
 }
 
 /* Number, date and time editors */
+QSpinBox,
 QDoubleSpinBox,
 QDateEdit,
 QTimeEdit {
@@ -149,6 +151,27 @@ QProgressBar {
 QProgressBar::chunk {
     background-color: #FFFF00;
     border-radius: 4px;
+}
+
+/* Sliders (back light) */
+QSlider::groove:horizontal {
+    background-color: #000000;
+    border: 3px solid #FFFFFF;
+    height: 10px;
+    border-radius: 6px;
+}
+
+QSlider::sub-page:horizontal {
+    background-color: #FFFF00;
+    border-radius: 6px;
+}
+
+QSlider::handle:horizontal {
+    background-color: #FFFF00;
+    border: 3px solid #FFFFFF;
+    width: 40px;
+    margin: -16px 0;
+    border-radius: 20px;
 }
 
 /* On-screen numeric keypad */

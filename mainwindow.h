@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <QButtonGroup>
 #include <QDateTime>
 #include <QElapsedTimer>
 #include <QLabel>
@@ -8,7 +9,9 @@
 #include <QPropertyAnimation>
 #include <QMainWindow>
 #include <QTimer>
+#include "backlight.h"
 #include "numerickeypad.h"
+#include "screensaver.h"
 #include "rs485client.h"
 
 QT_BEGIN_NAMESPACE
@@ -32,6 +35,9 @@ public:
         chargerOnVoltage = voltage;
         chargerOnCurrentLimit = currentLimit;
     }
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;     // sees every touch / key, for the idle timers
 
 private slots:
     void on_pushButton_home_clicked();
@@ -113,6 +119,28 @@ private:
     void showCalibrationMessage(const QString &text);
     bool selectedReading(double &value) const;
     // Enable / Disable page shows the same values as the dashboard
+    // Display page: theme radio buttons, back light, dimming and screen saver
+    enum class PowerState { Normal, Dimmed, ScreenSaver };
+    QButtonGroup *themeGroup = nullptr;
+    QButtonGroup *keyboardGroup = nullptr;
+    NumericKeypad *displayKeypad = nullptr;
+    Backlight *backlight = nullptr;
+    ScreenSaver *screenSaver = nullptr;
+    QTimer *idleTimer = nullptr;
+    QElapsedTimer idleClock;                        // time since the last touch or key
+    PowerState powerState = PowerState::Normal;
+    int backlightPercent = 100;                     // the level chosen with the slider
+    int dimAfterS = 60;                             // 0 = never dim
+    int screensaverAfterS = 300;                    // 0 = no screen saver
+    bool alarmActive = false;
+    bool swallowUntilRelease = false;               // the touch that woke the screen is not a button press
+    void setupDisplayPage();
+    void saveDisplaySettings();
+    void checkIdle();
+    void userActivity();
+    void setPowerState(PowerState state);
+    void applyPowerState();
+    int dimPercent() const;
     QElapsedTimer chargerClickTimer;                // de-bounce for the charger button
     int pollCount = 0;
     void showAlarmState(bool haveData, bool active);

@@ -23,6 +23,10 @@ set(PROJECT_SOURCES
 	numerickeypad.cpp
 	toggleswitch.h
 	toggleswitch.cpp
+	backlight.h
+	backlight.cpp
+	screensaver.h
+	screensaver.cpp
         rs485client.h
         rs485client.cpp
 )

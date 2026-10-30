@@ -10,6 +10,7 @@
 #include <QTimer>
 #include <QMessageBox>
 #include <QProgressBar>
+#include <QSettings>
 #include <cmath>
 
 // Bigger text and buttons for pop-up windows, so they are easy to read and to tap on the touch screen
@@ -245,6 +246,8 @@ MainWindow::MainWindow(QWidget *parent)
             });
     updateCurrentValueLabel();
 
+    setupDisplayPage();
+
     pollTimer = new QTimer(this);
     connect(pollTimer, &QTimer::timeout, this, [this]()
             {
@@ -282,6 +285,9 @@ MainWindow::~MainWindow()
     // Stop talking to the daemon before the user interface is deleted
     pollTimer->stop();
     rs485->disconnect(this);
+
+    qApp->removeEventFilter(this);
+    backlight->setPercent(backlightPercent);        // never leave the screen dim or off behind
 
     delete ui;
 }
@@ -370,6 +376,10 @@ void MainWindow::on_pushButtonDisplay_settings_clicked()
 // System alarms on the dashboard and on the Enable / Disable page (always the same text)
 void MainWindow::showAlarmState(bool haveData, bool active)
 {
+    alarmActive = haveData && active;
+    if (screenSaver && powerState == PowerState::ScreenSaver)
+        applyPowerState();                          // an alarm appeared or cleared while the screen saver is on
+
     const QString text  = !haveData ? "--" : (active ? "ALARM" : "NO ALARMS");
     const QString style = (haveData && active) ? "color: #FF3B30; font-weight: bold;" : QString();
 
@@ -644,3 +654,177 @@ void MainWindow::on_pushButton_menu_2_clicked()
  ui->stackedWidget->setCurrentWidget(ui->pageMenu);
 }
 
+
+// ---- Display page: back light, dimming and screen saver ---------------------
+
+void MainWindow::setupDisplayPage()
+{
+    // The radio buttons are no longer inside one layout, so the groups are made here.
+    // A QButtonGroup keeps them exclusive wherever they are placed on the page.
+    themeGroup = new QButtonGroup(this);
+    themeGroup->addButton(ui->radioButtonDark);
+    themeGroup->addButton(ui->radioButtonLight);
+    themeGroup->addButton(ui->radioButtonHighcontrast);
+    ui->radioButtonDark->setChecked(true);
+
+    keyboardGroup = new QButtonGroup(this);
+    keyboardGroup->addButton(ui->radioButton_Keyboard_On);
+    keyboardGroup->addButton(ui->radioButton_Keyboard_Off);
+    keyboardGroup->addButton(ui->radioButton_Keyboard_Auto);
+    if (!keyboardGroup->checkedButton())
+        ui->radioButton_Keyboard_Auto->setChecked(true);
+
+    // Saved settings
+    QSettings settings("SP515", "SP515_Display_2");
+    backlightPercent  = settings.value("display/backlightPercent", 100).toInt();
+    dimAfterS         = settings.value("display/dimAfterS", 60).toInt();
+    screensaverAfterS = settings.value("display/screensaverAfterS", 300).toInt();
+
+    backlight = new Backlight(this);
+    screenSaver = new ScreenSaver(this);
+
+    ui->horizontalSlider_BackLight->setRange(10, 100);      // never fully dark from the slider
+    backlightPercent = qBound(ui->horizontalSlider_BackLight->minimum(), backlightPercent, ui->horizontalSlider_BackLight->maximum());
+    ui->horizontalSlider_BackLight->setValue(backlightPercent);
+    ui->spin_dim_after->setValue(dimAfterS);
+    ui->spin_screensaver_after->setValue(screensaverAfterS);
+    backlight->setPercent(backlightPercent);
+
+    // Numeric keypad for the two timers
+    displayKeypad = new NumericKeypad(ui->pageDisplay_settings);
+    displayKeypad->setKeySize(84, 72);
+    displayKeypad->registerEdit(ui->spin_dim_after);
+    displayKeypad->registerEdit(ui->spin_screensaver_after);
+
+    // Changes take effect at once and are saved at once
+    connect(ui->horizontalSlider_BackLight, &QSlider::valueChanged, this, [this](int value)
+            {
+                backlightPercent = value;
+                if (powerState == PowerState::Normal)
+                    backlight->setPercent(backlightPercent);
+                saveDisplaySettings();
+            });
+    connect(ui->spin_dim_after, qOverload<int>(&QSpinBox::valueChanged), this, [this](int seconds)
+            {
+                dimAfterS = seconds;
+                saveDisplaySettings();
+            });
+    connect(ui->spin_screensaver_after, qOverload<int>(&QSpinBox::valueChanged), this, [this](int seconds)
+            {
+                screensaverAfterS = seconds;
+                saveDisplaySettings();
+            });
+
+    // Idle timers: every touch or key press restarts them
+    idleClock.start();
+    idleTimer = new QTimer(this);
+    connect(idleTimer, &QTimer::timeout, this, &MainWindow::checkIdle);
+    idleTimer->start(500);
+    qApp->installEventFilter(this);
+}
+
+void MainWindow::saveDisplaySettings()
+{
+    QSettings settings("SP515", "SP515_Display_2");
+    settings.setValue("display/backlightPercent", backlightPercent);
+    settings.setValue("display/dimAfterS", dimAfterS);
+    settings.setValue("display/screensaverAfterS", screensaverAfterS);
+}
+
+// Called twice a second: has the display been left alone long enough to dim or to start the screen saver?
+void MainWindow::checkIdle()
+{
+    if (QApplication::activeModalWidget())
+    {
+        idleClock.restart();                        // a pop-up is waiting for an answer: not idle
+        return;
+    }
+
+    const qint64 idleS = idleClock.elapsed() / 1000;
+
+    PowerState target = PowerState::Normal;
+    if (screensaverAfterS > 0 && idleS >= screensaverAfterS)
+        target = PowerState::ScreenSaver;
+    else if (dimAfterS > 0 && idleS >= dimAfterS)
+        target = PowerState::Dimmed;
+
+    if (target != powerState)
+        setPowerState(target);
+}
+
+void MainWindow::userActivity()
+{
+    idleClock.restart();
+    if (powerState != PowerState::Normal)
+        setPowerState(PowerState::Normal);
+}
+
+void MainWindow::setPowerState(PowerState state)
+{
+    powerState = state;
+    applyPowerState();
+}
+
+// A quarter of the chosen brightness, but not below 5 %
+int MainWindow::dimPercent() const
+{
+    return qMin(backlightPercent, qMax(5, backlightPercent / 4));
+}
+
+void MainWindow::applyPowerState()
+{
+    switch (powerState)
+    {
+    case PowerState::Normal:
+        screenSaver->stop();
+        backlight->setPercent(backlightPercent);
+        break;
+
+    case PowerState::Dimmed:
+        backlight->setPercent(dimPercent());
+        break;
+
+    case PowerState::ScreenSaver:
+        // Dark screen. Only an alarm lights it up: dim, with a red button bouncing around.
+        screenSaver->start(alarmActive);
+        backlight->setPercent(alarmActive ? dimPercent() : 0);
+        break;
+    }
+}
+
+// Sees every touch and key press in the application.
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    const QEvent::Type type = event->type();
+
+    const bool begins = (type == QEvent::MouseButtonPress || type == QEvent::TouchBegin || type == QEvent::KeyPress);
+    const bool otherInput = (type == QEvent::MouseButtonRelease || type == QEvent::MouseMove
+                             || type == QEvent::TouchUpdate || type == QEvent::TouchEnd
+                             || type == QEvent::KeyRelease || type == QEvent::Wheel);
+
+    if (begins || otherInput)
+    {
+        if (powerState == PowerState::ScreenSaver)
+        {
+            // Only a touch or key press wakes the screen. It is not passed on, so it cannot press a button.
+            if (begins)
+            {
+                swallowUntilRelease = (type != QEvent::KeyPress);
+                userActivity();
+            }
+            return true;
+        }
+
+        if (swallowUntilRelease)
+        {
+            // The rest of the touch that woke the screen
+            if (type == QEvent::MouseButtonRelease || type == QEvent::TouchEnd)
+                swallowUntilRelease = false;
+            return true;
+        }
+
+        userActivity();
+    }
+
+    return QMainWindow::eventFilter(watched, event);
+}
