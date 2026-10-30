@@ -40,15 +40,8 @@ QFrame#frame_dashboard_10,
 QFrame#frame_dashboard_11,
 QFrame#frame_dashboard_12,
 QFrame#frame_battery_voltage_2,
-QFrame#frame_battery_cur_3,
-QFrame#label_batt_volt_value_3,
-QFrame#label_batt_volt_value_4,
-QFrame#label_batt_volt_value_5,
-QFrame#label_batt_cur_value_6,
-QFrame#label_batt_cur_value_7,
-QFrame#label_batt_cur_value_8,
-QVBoxLayout#verticalLayout_4,
-QVBoxLayout#verticalLayout_6,
+QFrame#frame_battery_current_2,
+QFrame#frame_system_alarms_2,
 QComboBox#combo_calibration_target
 {
     background-color: white;
@@ -162,20 +155,13 @@ QFrame#numericKeypad {
     border-radius: 10px;
 }
 
-QPushButton#btnChargerEnable
- {
-    background-color: #AA0000;
-    color: white;
-    border: 2px solid #880000;
-    border-radius: 15px;
-    font-weight: bold;
-}
-
-QPushButton#btnChargerEnable:checked
-{
-    background-color: #00A030;
-    color: white;
-    border: 2px solid #008020;
+/* Charger ON / OFF switch */
+ToggleSwitch#btnChargerEnable {
+    qproperty-onColor: #00A030;
+    qproperty-offColor: #AA0000;
+    qproperty-knobColor: #FFFFFF;
+    qproperty-textColor: #FFFFFF;
+    qproperty-captionColor: #000000;
 }
 )";
 

@@ -18,6 +18,13 @@ struct Measurements
     bool  complete = false;   // true once all values were received
 };
 
+// Alarm flags from the SP515. Bit 0 is alarm 1; any bit set means an alarm is active.
+struct Alarms
+{
+    quint32 bits = 0;
+    bool any() const { return bits != 0; }
+};
+
 // Analogue calibration held by the SP515: one gain and one offset per channel.
 struct AnalogueCalibration
 {
@@ -57,6 +64,7 @@ public:
         GetAnaGains = 20,
         SetAnaGain = 21,
         SetAnaOffset = 22,
+        SetChargeSetpoint = 23,
     };
 
     explicit Rs485Client(QObject *parent = nullptr,
@@ -66,12 +74,19 @@ public:
     // slow daemon never builds up a pile of polls.
     void requestAnalogueInputs();
 
+    // Ask for the alarm flags. Ignored while one is already waiting.
+    void requestAlarms();
+
     // Gains and offsets for all channels
     void requestAnalogueCalibration();
 
     // Write one gain or offset to the SP515 (channel 0..8)
     void setAnalogueGain(quint8 channel, float value);
     void setAnalogueOffset(quint8 channel, float value);
+
+    // Switch the charger on or off. The result arrives in commandFinished(): ok is true only
+    // when the SP515 has acknowledged the new state (via the daemon).
+    void setChargerSetpoint(bool enabled, float voltage, float currentLimit);
 
     // Any other command, for pages that need it (configs, alarms, ...)
     void sendCommand(quint16 command, const QByteArray &payload = QByteArray());
@@ -81,6 +96,7 @@ public:
 signals:
     void analogueInputsReceived(const Measurements &m);
     void analogueCalibrationReceived(const AnalogueCalibration &c);
+    void alarmsReceived(const Alarms &a);
 
     // Raw payload of every successful reply
     void replyReceived(quint16 command, const QByteArray &payload);
@@ -121,6 +137,7 @@ private:
     quint16 m_nextTransactionId = 1;
     bool m_busy = false;
     bool m_pollPending = false;
+    bool m_alarmsPending = false;
 };
 
 #endif // RS485CLIENT_H

@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QDateTime>
+#include <QElapsedTimer>
 #include <QLabel>
 #include <QProgressBar>
 #include <QPropertyAnimation>
@@ -103,6 +104,15 @@ private:
     void showCalibrationResult();                   // green OK or red FAIL (+ popup), buttons on again
     void showCalibrationMessage(const QString &text);
     bool selectedReading(double &value) const;
+    // Enable / Disable page shows the same values as the dashboard
+    QElapsedTimer chargerClickTimer;                // de-bounce for the charger button
+    int pollCount = 0;
+    void showAlarmState(bool haveData, bool active);
+    void setChargerState(bool on);                  // switch the charger button (after the SP515 confirmed)
+    void requestChargerState(bool on);              // ask the SP515 to switch the charger (after the user said Yes)
+    bool chargerCommandPending = false;
+    bool chargerPendingOn = false;
+    void showMessageBox(const QString &title, const QString &text);
     qint64 clockOffsetSecs = 0;     // set when the date/time is saved; added to the system clock
     Rs485Client *rs485;
     QTimer *pollTimer;

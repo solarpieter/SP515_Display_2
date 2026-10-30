@@ -12,6 +12,23 @@
 #include <QProgressBar>
 #include <cmath>
 
+// Bigger text and buttons for pop-up windows, so they are easy to read and to tap on the touch screen
+static void applyBigPopupStyle(QMessageBox *box)
+{
+    QFont font = box->font();
+    font.setPixelSize(20);
+    box->setFont(font);
+    box->setStyleSheet("QMessageBox { min-width: 520px; }"
+                       "QPushButton { min-width: 140px; min-height: 50px; }");
+}
+
+// ---- Charger ON / OFF ------------------------------------------------------
+// Sent to the SP515 when the charger is switched ON. SET THESE FOR YOUR BATTERY before using
+// the switch: the SP515 uses them directly as the charger voltage and current limit.
+// While they are 0 the switch refuses to turn the charger on. (OFF always sends 0 V, 0 A.)
+static const float chargerOnVoltage      = 0.0f;    // volts
+static const float chargerOnCurrentLimit = 0.0f;    // amps
+
 // ---- Calibration -----------------------------------------------------------
 // One entry per item in combo_calibration_target, in the same order. The list
 // position is also the channel number sent to the SP515 (0..8).
@@ -64,8 +81,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->dateEdit->setDisplayFormat("dd/MM/yyyy");
     ui->timeEdit->setDisplayFormat("HH:mm:ss");
     ui->radioButtonDark->setChecked(true);
-    ui->btnChargerEnable->setChecked(true);
-    ui->btnChargerEnable->setText("CHARGER ON");
+    ui->btnChargerEnable->setChecked(false);            // the SP515 starts with the charger disabled
+    ui->btnChargerEnable->setText("CHARGER OFF");
     clockTimer = new QTimer(this);      //Create timer
     // Show values immediately, then update every second
     updateClockLabels();
@@ -88,6 +105,11 @@ MainWindow::MainWindow(QWidget *parent)
     dateTimeKeypad->registerEdit(ui->dateEdit);
     dateTimeKeypad->registerEdit(ui->timeEdit);
 
+    // Enable / Disable page starts with the same text as the dashboard
+    ui->label_batt_volt_value_3->setText(ui->label_batt_volt_value_2->text());
+    ui->label_batt_current_value_3->setText(ui->label_batt_current_value_2->text());
+    ui->label_alarms_value_3->setText(ui->label_alarms_value_2->text());
+
     // Live data from the rs485d daemon (it handles the RS485 link and CRC).
     // Ask for the analogue inputs twice a second and show them on the dashboard.
     rs485 = new Rs485Client(this);
@@ -105,11 +127,13 @@ MainWindow::MainWindow(QWidget *parent)
                 }
 
                 ui->label_batt_volt_value_2->setText(QString::number(m.vBatt, 'f', 1) + " V");
+                ui->label_batt_volt_value_3->setText(ui->label_batt_volt_value_2->text());     // Enable / Disable page
 
                 // The daemon may send only vBatt for now; show "--" for whatever it did not send
                 if (m.complete)
                 {
                     ui->label_batt_current_value_2->setText(QString::number(m.iBatt, 'f', 1) + " A");
+                    ui->label_batt_current_value_3->setText(ui->label_batt_current_value_2->text());   // Enable / Disable page
                     ui->label_batt_mode_value_4->setText(QString::number(m.tBatt, 'f', 1) + " C");
                     ui->label_load_volt_value_2->setText(QString::number(m.vLoad, 'f', 1) + " V");
                     ui->label_load_current_value_2->setText(QString::number(m.iLoad, 'f', 1) + " A");
@@ -117,6 +141,7 @@ MainWindow::MainWindow(QWidget *parent)
                 else
                 {
                     for (QLabel *label : {ui->label_batt_current_value_2,
+                                          ui->label_batt_current_value_3,
                                           ui->label_batt_mode_value_4,
                                           ui->label_load_volt_value_2,
                                           ui->label_load_current_value_2})
@@ -139,13 +164,21 @@ MainWindow::MainWindow(QWidget *parent)
 
                 // Don't leave old numbers on screen as if they were live
                 for (QLabel *label : {ui->label_batt_volt_value_2,
+                                      ui->label_batt_volt_value_3,
                                       ui->label_batt_current_value_2,
+                                      ui->label_batt_current_value_3,
                                       ui->label_batt_mode_value_4,
                                       ui->label_load_volt_value_2,
                                       ui->label_load_current_value_2})
                 {
                     label->setText("--");
                 }
+                showAlarmState(false, false);
+            });
+
+    connect(rs485, &Rs485Client::alarmsReceived, this, [this](const Alarms &a)
+            {
+                showAlarmState(true, a.any());
             });
 
     // Calibration page: progress bar and the OK / FAIL labels (found by name, hidden until used)
@@ -193,6 +226,19 @@ MainWindow::MainWindow(QWidget *parent)
             });
     connect(rs485, &Rs485Client::commandFinished, this, [this](quint16 command, bool ok, const QString &message)
             {
+                if (command == Rs485Client::SetChargeSetpoint)
+                {
+                    // The SP515's answer to the ON / OFF request
+                    chargerCommandPending = false;
+                    ui->btnChargerEnable->setEnabled(true);
+                    if (ok)
+                        setChargerState(chargerPendingOn);          // confirmed: the switch moves
+                    else
+                        showMessageBox("Charger", QString("The charger was NOT switched %1:\n%2")
+                                                      .arg(chargerPendingOn ? "ON" : "OFF", message));
+                    return;
+                }
+
                 const bool ours = command == Rs485Client::GetAnaGains
                                || command == Rs485Client::SetAnaGain
                                || command == Rs485Client::SetAnaOffset;
@@ -207,7 +253,12 @@ MainWindow::MainWindow(QWidget *parent)
     updateCurrentValueLabel();
 
     pollTimer = new QTimer(this);
-    connect(pollTimer, &QTimer::timeout, rs485, &Rs485Client::requestAnalogueInputs);
+    connect(pollTimer, &QTimer::timeout, this, [this]()
+            {
+                rs485->requestAnalogueInputs();
+                if (++pollCount % 2 == 0)
+                    rs485->requestAlarms();         // alarms every second
+            });
     pollTimer->start(500);
 }
 
@@ -323,9 +374,73 @@ void MainWindow::on_pushButtonDisplay_settings_clicked()
 }
 
 
+// System alarms on the dashboard and on the Enable / Disable page (always the same text)
+void MainWindow::showAlarmState(bool haveData, bool active)
+{
+    const QString text  = !haveData ? "--" : (active ? "ALARM" : "NO ALARMS");
+    const QString style = (haveData && active) ? "color: #FF3B30; font-weight: bold;" : QString();
+
+    for (QLabel *label : {ui->label_alarms_value_2, ui->label_alarms_value_3})
+    {
+        label->setText(text);
+        label->setStyleSheet(style);
+    }
+}
+
+
 void MainWindow::on_btnChargerEnable_clicked(bool checked)
 {
-    if (checked)
+    // De-bounce: a second press within 400 ms is ignored and the button goes back to how it was
+    if (chargerClickTimer.isValid() && chargerClickTimer.elapsed() < 400)
+    {
+        ui->btnChargerEnable->setChecked(!checked);
+        return;
+    }
+    chargerClickTimer.restart();
+
+    // The button has just flipped itself. Put it back and ask first: it only changes if the answer is Yes.
+    ui->btnChargerEnable->setChecked(!checked);
+
+    auto *box = new QMessageBox(QMessageBox::Question, "Charger",
+                                QString("Are you sure you want to switch the charger %1?").arg(checked ? "ON" : "OFF"),
+                                QMessageBox::Yes | QMessageBox::No, this);
+    box->setDefaultButton(QMessageBox::No);         // Enter, or closing the window, means No
+    box->setEscapeButton(QMessageBox::No);
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    applyBigPopupStyle(box);
+    connect(box, &QMessageBox::finished, this, [this, checked](int result)
+            {
+                if (result == QMessageBox::Yes)
+                    requestChargerState(checked);
+            });
+    box->open();                                    // does not block the display
+}
+
+// Asks the SP515 to switch the charger. The switch only moves when the SP515 has confirmed it.
+void MainWindow::requestChargerState(bool on)
+{
+    if (chargerCommandPending)
+        return;
+
+    if (on && (chargerOnVoltage <= 0.0f || chargerOnCurrentLimit <= 0.0f))
+    {
+        showMessageBox("Charger", "The charger voltage and current limit have not been set.\n"
+                                  "Set chargerOnVoltage and chargerOnCurrentLimit in mainwindow.cpp.");
+        return;
+    }
+
+    chargerCommandPending = true;
+    chargerPendingOn = on;
+    ui->btnChargerEnable->setEnabled(false);        // no second press while we wait for the answer
+
+    rs485->setChargerSetpoint(on, on ? chargerOnVoltage : 0.0f, on ? chargerOnCurrentLimit : 0.0f);
+}
+
+void MainWindow::setChargerState(bool on)
+{
+    ui->btnChargerEnable->setChecked(on);
+
+    if (on)
     {
         ui->btnChargerEnable->setText("CHARGER ON");
 
@@ -478,16 +593,15 @@ void MainWindow::showCalibrationResult()
 
 void MainWindow::showCalibrationMessage(const QString &text)
 {
-    // Not modal-blocking, so the display keeps updating behind it
-    auto *box = new QMessageBox(QMessageBox::Warning, "Calibration", text, QMessageBox::Ok, this);
-    box->setAttribute(Qt::WA_DeleteOnClose);
+    showMessageBox("Calibration", text);
+}
 
-    // Bigger text and button, so it is easy to read and to tap on the touch screen
-    QFont font = box->font();
-    font.setPixelSize(20);
-    box->setFont(font);
-    box->setStyleSheet("QMessageBox { min-width: 520px; }"
-                       "QPushButton { min-width: 140px; min-height: 50px; }");
+void MainWindow::showMessageBox(const QString &title, const QString &text)
+{
+    // Not modal-blocking, so the display keeps updating behind it
+    auto *box = new QMessageBox(QMessageBox::Warning, title, text, QMessageBox::Ok, this);
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    applyBigPopupStyle(box);
     box->open();
 }
 

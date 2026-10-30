@@ -43,4 +43,15 @@ In Qt Designer, right-click the stackedWidget and choose Insert Page After (or B
 Select the new page and give it a clear objectName in the Property Editor, such as pageSystemInfo.
 Add a button for it, then in the button’s clicked slot write:
 cpp
+
+Downloading repository
+sudo apt update
+sudo apt install -y git
+git clone https://github.com/WynandDP91/TI_SP515v1.git
+cd TI_SP515v1
+git branch -a
+That clones the repository and fetches its branches. To switch to one, use the branch name shown by git branch -a:
+
+bash
+git switch --track origin/BRANCH_NAME
 ui->stackedWidget->setCurrentWidget(ui->pageSystemInfo);

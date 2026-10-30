@@ -21,6 +21,8 @@ set(PROJECT_SOURCES
         mainwindow.ui
 	numerickeypad.h
 	numerickeypad.cpp
+	toggleswitch.h
+	toggleswitch.cpp
         rs485client.h
         rs485client.cpp
 )
@@ -54,6 +56,9 @@ endif()
 
 target_link_libraries(SP515_Display_2 PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 target_link_libraries(SP515_Display_2 PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
+
+# promoted widgets in mainwindow.ui (ToggleSwitch) are found next to the sources
+target_include_directories(SP515_Display_2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
