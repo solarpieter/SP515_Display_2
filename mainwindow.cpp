@@ -22,13 +22,6 @@ static void applyBigPopupStyle(QMessageBox *box)
                        "QPushButton { min-width: 140px; min-height: 50px; }");
 }
 
-// ---- Charger ON / OFF ------------------------------------------------------
-// Sent to the SP515 when the charger is switched ON. SET THESE FOR YOUR BATTERY before using
-// the switch: the SP515 uses them directly as the charger voltage and current limit.
-// While they are 0 the switch refuses to turn the charger on. (OFF always sends 0 V, 0 A.)
-static const float chargerOnVoltage      = 0.0f;    // volts
-static const float chargerOnCurrentLimit = 0.0f;    // amps
-
 // ---- Calibration -----------------------------------------------------------
 // One entry per item in combo_calibration_target, in the same order. The list
 // position is also the channel number sent to the SP515 (0..8).
@@ -424,8 +417,7 @@ void MainWindow::requestChargerState(bool on)
 
     if (on && (chargerOnVoltage <= 0.0f || chargerOnCurrentLimit <= 0.0f))
     {
-        showMessageBox("Charger", "The charger voltage and current limit have not been set.\n"
-                                  "Set chargerOnVoltage and chargerOnCurrentLimit in mainwindow.cpp.");
+        showMessageBox("Charger", "The charger voltage and current limit have not been set yet.");
         return;
     }
 

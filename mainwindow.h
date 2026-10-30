@@ -25,6 +25,14 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
 
+    // Charger voltage (V) and current limit (A) that are sent when the charger is switched ON.
+    // The settings pages call this; until it has been called the charger cannot be switched ON.
+    void setChargerSetpoint(float voltage, float currentLimit)
+    {
+        chargerOnVoltage = voltage;
+        chargerOnCurrentLimit = currentLimit;
+    }
+
 private slots:
     void on_pushButton_home_clicked();
 
@@ -112,6 +120,8 @@ private:
     void requestChargerState(bool on);              // ask the SP515 to switch the charger (after the user said Yes)
     bool chargerCommandPending = false;
     bool chargerPendingOn = false;
+    float chargerOnVoltage = 0.0f;                  // sent with ON, set from the settings pages
+    float chargerOnCurrentLimit = 0.0f;
     void showMessageBox(const QString &title, const QString &text);
     qint64 clockOffsetSecs = 0;     // set when the date/time is saved; added to the system clock
     Rs485Client *rs485;
