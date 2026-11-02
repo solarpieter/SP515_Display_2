@@ -25,12 +25,13 @@ The app runs fullscreen with no title bar.
 | Page | What it does | Status |
 |---|---|---|
 | Dashboard | Live battery voltage, battery current, battery temperature, load voltage, load current and system alarms, plus date and time. Shows `--` when the daemon cannot be reached. | Working |
-| Menu | Buttons to the settings pages, HOME, BACK. | Charger Enable / Disable, Calibration, Display Settings and Date / Time Settings are connected. The other buttons are placeholders. |
+| Menu | Buttons to the settings pages, HOME, BACK. | Charger Enable / Disable, Calibration, Battery Settings, Display Settings and Date / Time Settings are connected. The other buttons are placeholders. |
 | Charger Enable / Disable | A slide switch with a Yes / No question. The switch only moves after the SP515 has confirmed. Shows battery voltage, battery current and system alarms like the dashboard. | Working. Needs the charger voltage and current limit from the settings pages, see [Charger switch](#charger-switch). |
 | Calibration | Pick a measurement, enter what a reference meter shows, then Calibrate (gain) or Apply Offset. A 3 second progress bar runs, then a green OK or red FAIL appears. | Working. Two assumptions need confirming, see `PROJECT_NOTES.md`. |
 | Display Settings | Theme (dark, light, high contrast), back light slider, "Dim after" and "Screen saver after" timers. | Working |
 | Date / Time Settings | Edit the date and time. SAVE updates the dashboard clock. | Changes the app's clock only, not the Pi's system clock. |
-| Battery Settings, Alarm Settings | Pages exist but no button opens them yet. | Not started |
+| Battery Settings | Battery type, capacity, cells per string, strings, and the float, boost, equalize and initialize V/Cell. The values are read from the SP515 when the page opens. SAVE sends only the values that were edited. The SP515 checks the limits; a value it does not accept gets a red message next to it. | Working. Recharge rate, recharge efficiency and temperature compensation are shown but not connected yet, see `PROJECT_NOTES.md`. |
+| Alarm Settings | Page exists but no button opens it yet. | Not started |
 
 Numbers are entered with an on-screen numeric keypad that opens when a value box is tapped (0-9, `-`, `.`, backspace, Enter).
 
@@ -208,13 +209,14 @@ error   :  the reply command has bit 0x8000 set; the payload is one status byte
 | 4 | GET_ALARMS | none | 1 byte, bit 0 = alarm 1 | yes, but see the note below |
 | 5 | RESET_ALARMS | none | none | yes |
 | 6-13 | GET / SET FLOAT, BOOST, EQUALIZE, INITIALIZE config | config struct | config struct | yes |
-| 14-19 | GET / SET BATTERY, COMPENSATION, LVR config | | | not yet |
+| 14-15 | GET / SET BATTERY config | U8 type (1 lead acid, 2 NiCad, 3 lithium), U8 cells per string, U8 strings, float capacity (7 bytes) | the same 7 bytes | yes |
+| 16-19 | GET / SET COMPENSATION, LVR config | | | not yet |
 | 20 | GET_ANA_GAINS | none | 9 gains then 9 offsets, floats, 72 bytes | yes |
 | 21 | SET_ANA_GAIN | U8 channel, float value | none | yes |
 | 22 | SET_ANA_OFFSET | U8 channel, float value | none | yes |
 | 23 | SET_CHARGE_SETPOINT | U8 enabled, float voltage, float currentLimit (9 bytes) | none | needs the charger patch |
 
-The display currently uses commands 1, 4, 20, 21, 22 and 23.
+The display currently uses commands 1, 4, 6 to 15, 20, 21, 22 and 23.
 
 > Alarms: the daemon returns the alarm flags it holds, but it does not read them from the SP515 yet. Until it does, the display always shows NO ALARMS and the screen saver never shows the bouncing button on a real alarm.
 
@@ -241,7 +243,7 @@ The `Rs485Client` class (`rs485client.h` and `.cpp`) is the only place that know
 | `requestAnalogueCalibration()` | `analogueCalibrationReceived(AnalogueCalibration)` |
 | `setAnalogueGain(channel, value)`, `setAnalogueOffset(channel, value)` | `commandFinished(command, ok, message)` |
 | `setChargerSetpoint(enabled, voltage, currentLimit)` | `commandFinished(23, ok, message)` |
-| `sendCommand(command, payload)` | any other command; `replyReceived(command, payload)` |
+| `sendCommand(command, payload, timeoutMs)` | any other command; `replyReceived(command, payload)`. The timeout is 1.5 s unless given; a config SET can take the daemon up to 5 s. After a failure, `lastErrorStatus()` is the daemon's status byte (3 = the SP515 did not accept the request or did not answer). |
 
 The dashboard asks for the analogue inputs every 500 ms and the alarms every second. The Qt local-socket class only reaches a Unix socket on the Pi (on Windows it uses named pipes), so test with the daemon running on the Pi.
 

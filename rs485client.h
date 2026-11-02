@@ -61,6 +61,7 @@ public:
         GetBoostConfig = 8,   SetBoostConfig = 9,
         GetEqualizeConfig = 10, SetEqualizeConfig = 11,
         GetInitializeConfig = 12, SetInitializeConfig = 13,
+        GetBatteryConfig = 14, SetBatteryConfig = 15,
         GetAnaGains = 20,
         SetAnaGain = 21,
         SetAnaOffset = 22,
@@ -88,8 +89,15 @@ public:
     // when the SP515 has acknowledged the new state (via the daemon).
     void setChargerSetpoint(bool enabled, float voltage, float currentLimit);
 
-    // Any other command, for pages that need it (configs, alarms, ...)
-    void sendCommand(quint16 command, const QByteArray &payload = QByteArray());
+    // Any other command, for pages that need it (configs, alarms, ...).
+    // timeoutMs is how long to wait for the daemon's reply; 0 means the normal 1.5 s.
+    // A config SET can take the daemon up to 5 s (it waits for the SP515 to save), so give it longer.
+    void sendCommand(quint16 command, const QByteArray &payload = QByteArray(), int timeoutMs = 0);
+
+    // Status byte of the daemon's last error reply (3 = the SP515 did not answer or did not accept
+    // the request). 0 when the last failure was not an error reply from the daemon. Valid while
+    // commandFinished() is being handled.
+    quint8 lastErrorStatus() const { return m_lastStatus; }
 
     bool busy() const { return m_busy; }
 
@@ -113,9 +121,10 @@ private:
         quint16 command = 0;
         quint16 transactionId = 0;
         QByteArray payload;
+        int timeoutMs = 0;                 // 0 = DefaultTimeoutMs
     };
 
-    void enqueue(quint16 command, const QByteArray &payload);
+    void enqueue(quint16 command, const QByteArray &payload, int timeoutMs = 0);
     void startNext();
     void onConnected();
     void onReadyRead();
@@ -127,6 +136,7 @@ private:
     static constexpr int HeaderSize = 6;
     static constexpr int MaxPayload = 256;
     static constexpr quint16 ErrorFlag = 0x8000;
+    static constexpr int DefaultTimeoutMs = 1500;
 
     QLocalSocket m_socket;
     QTimer m_timeout;
@@ -138,6 +148,7 @@ private:
     bool m_busy = false;
     bool m_pollPending = false;
     bool m_alarmsPending = false;
+    quint8 m_lastStatus = 0;
 };
 
 #endif // RS485CLIENT_H

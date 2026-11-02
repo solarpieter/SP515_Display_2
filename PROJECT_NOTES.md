@@ -56,11 +56,14 @@ To add a page:
 2. Give the page a clear `objectName`, for example `pageSystemInfo`.
 3. In the button's `clicked` slot, call `setCurrentWidget(ui->pageSystemInfo)`.
 
+The app always starts on the dashboard (set in the `MainWindow` constructor), because Qt Designer saves whichever page was open last as the start page.
+
 Current pages: `pageDashboard`, `pageMenu`, `pageCalibration`, `pageBattery_settings`, `pageAlarm_settings`, `pageDisplay_settings`, `pageDate_settings`, `pageTime_settings`, `pageEnable_Disable`.
 
 ## Open items
 
-- **Battery Settings** and **Alarm Settings** buttons have empty slots. The pages exist but nothing navigates to them. Each page also needs a BACK button.
+- **Alarm Settings** has an empty slot. The page exists but nothing navigates to it. It also needs a BACK button.
+- **Battery Settings:** recharge rate, recharge efficiency and temperature compensation are disabled in `setupBatteryPage()` because no command carries them (the profile values live in the SP515 firmware) and the daemon does not support the compensation commands 16 and 17 yet. Once they exist, enable the boxes and add them to the load and save code. The battery type list has six entries, but the SP515 stores only the chemistry (lead acid, NiCad, lithium), so Flooded and VRLA both save as lead acid and NiCad L, M and H as NiCad. The daemon answers "failed" both when the SP515 rejects a value and when it does not answer, so the page cannot tell those two apart.
 - **Calibrate** and **Apply Offset** buttons on the calibration page are not wired to anything yet.
 - Add a hidden exit for the fullscreen app, if one is wanted.
 - Fill in the remaining `TODO`s in `README.md`: Qt version and packages, UART device name, data/parity/stop bits (probably 8N1), bus termination, names of the send and receive apps, and how the display app talks to them.

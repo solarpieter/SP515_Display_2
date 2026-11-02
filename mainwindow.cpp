@@ -11,7 +11,10 @@
 #include <QMessageBox>
 #include <QProgressBar>
 #include <QSettings>
+#include <QSignalBlocker>
+#include <QtEndian>
 #include <cmath>
+#include <cstring>
 
 // Bigger text and buttons for pop-up windows, so they are easy to read and to tap on the touch screen
 static void applyBigPopupStyle(QMessageBox *box)
@@ -70,6 +73,7 @@ MainWindow::MainWindow(QWidget *parent)
     , darkMode(true)
 {
     ui->setupUi(this);
+    ui->stackedWidget->setCurrentWidget(ui->pageDashboard);     // Qt Designer saves whichever page was open last
     qApp->setStyleSheet(darkTheme);
 
     ui->dateEdit->setDisplayFormat("dd/MM/yyyy");
@@ -220,6 +224,9 @@ MainWindow::MainWindow(QWidget *parent)
             });
     connect(rs485, &Rs485Client::commandFinished, this, [this](quint16 command, bool ok, const QString &message)
             {
+                if (handleBatteryCommandFinished(command, ok, message))
+                    return;                                 // a battery settings read or save
+
                 if (command == Rs485Client::SetChargeSetpoint)
                 {
                     // The SP515's answer to the ON / OFF request
@@ -247,6 +254,7 @@ MainWindow::MainWindow(QWidget *parent)
     updateCurrentValueLabel();
 
     setupDisplayPage();
+    setupBatteryPage();
 
     pollTimer = new QTimer(this);
     connect(pollTimer, &QTimer::timeout, this, [this]()
@@ -840,3 +848,382 @@ void MainWindow::on_pushButton_battset_back_clicked()
     ui->stackedWidget->setCurrentWidget(ui->pageMenu);
 }
 
+
+// ---- Battery settings page -------------------------------------------------
+//
+// Five configs are read when the page opens: battery (14), float (6), boost (8),
+// equalize (10) and initialize (12). Save sends back only the blocks that were edited.
+// The SP515 holds the limits and checks every value; if it does not accept one, the
+// daemon answers with an error and a red message appears next to that block.
+
+namespace {
+
+// Byte layout of each reply, as in the daemon's packed sUI_..Config_t structs.
+struct BatteryBlockLayout
+{
+    quint16 getCommand;
+    quint16 setCommand;
+    int size;               // payload size in bytes
+    int cellVOffset;        // where the V/Cell float sits (-1: the battery block has no V/Cell)
+};
+
+const BatteryBlockLayout batteryLayout[] =
+{
+    { Rs485Client::GetBatteryConfig,    Rs485Client::SetBatteryConfig,     7, -1 },  // U8 type, U8 cells, U8 strings, float capacity
+    { Rs485Client::GetFloatConfig,      Rs485Client::SetFloatConfig,       8,  0 },  // float cellV, float currentLimit
+    { Rs485Client::GetBoostConfig,      Rs485Client::SetBoostConfig,      26, 14 },  // 2 flags, 3 x U32, float cellV, 2 floats
+    { Rs485Client::GetEqualizeConfig,   Rs485Client::SetEqualizeConfig,   14,  6 },  // 2 flags, U32, float cellV, float
+    { Rs485Client::GetInitializeConfig, Rs485Client::SetInitializeConfig, 13,  5 },  // flag, U32, float cellV, float
+};
+
+// A config SET can take the daemon up to 5 s, so wait a little longer than that.
+const int batterySetTimeoutMs = 7000;
+
+// The battery type list on the page has six entries; the SP515 stores only the chemistry.
+// Index in comboBox_battery_type -> eBattType_t (1 lead acid, 2 NiCad, 3 lithium).
+const quint8 batteryTypeOfComboIndex[] = { 1, 1, 2, 2, 2, 3 };
+const int batteryComboCount = int(sizeof(batteryTypeOfComboIndex) / sizeof(batteryTypeOfComboIndex[0]));
+
+float floatAt(const QByteArray &bytes, int offset)
+{
+    quint32 raw;
+    std::memcpy(&raw, bytes.constData() + offset, sizeof(raw));
+    raw = qFromLittleEndian(raw);
+    float value;
+    std::memcpy(&value, &raw, sizeof(value));
+    return value;
+}
+
+void putFloat(QByteArray &bytes, int offset, float value)
+{
+    quint32 raw;
+    std::memcpy(&raw, &value, sizeof(raw));
+    raw = qToLittleEndian(raw);
+    std::memcpy(bytes.data() + offset, &raw, sizeof(raw));
+}
+
+} // namespace
+
+QLabel *MainWindow::batteryErrorLabel(int block) const
+{
+    switch (block)
+    {
+    case BlockBattery:    return ui->label_battery_error;
+    case BlockFloat:      return ui->label_float_error;
+    case BlockBoost:      return ui->label_boost_error;
+    case BlockEqualize:   return ui->label_equalize_error;
+    case BlockInitialize: return ui->label_initialize_error;
+    }
+    return nullptr;
+}
+
+QDoubleSpinBox *MainWindow::batteryCellVSpin(int block) const
+{
+    switch (block)
+    {
+    case BlockFloat:      return ui->doubleSpinBox_float_v_cell;
+    case BlockBoost:      return ui->doubleSpinBox_boost_v_cell;
+    case BlockEqualize:   return ui->doubleSpinBox_equalize_v_cell;
+    case BlockInitialize: return ui->doubleSpinBox_initialize_v_cell;
+    }
+    return nullptr;
+}
+
+void MainWindow::setupBatteryPage()
+{
+    for (int block = 0; block < BlockCount; ++block)
+    {
+        batteryErrorLabel(block)->setStyleSheet("color: #e53935;");
+        batteryErrorLabel(block)->clear();
+    }
+    ui->label_battset_status->clear();
+
+    // The SP515 stores these as single bytes
+    ui->spinBox_cells->setRange(0, 255);
+    ui->spinBox_strings->setRange(0, 255);
+
+    // Cell voltages need three decimals, or a value such as 2.275 V would be shown (and saved) as 2.28 V
+    for (int block : {BlockFloat, BlockBoost, BlockEqualize, BlockInitialize})
+    {
+        QDoubleSpinBox *spin = batteryCellVSpin(block);
+        spin->setDecimals(3);
+        spin->setSingleStep(0.005);
+        spin->setRange(0.0, 99.999);
+    }
+
+    // Numeric keypad: hidden until a value is tapped
+    batteryKeypad = new NumericKeypad(ui->pageBattery_settings);
+    batteryKeypad->setKeySize(84, 72);
+    for (QSpinBox *spin : {ui->spinBox_capacity, ui->spinBox_cells, ui->spinBox_strings})
+        batteryKeypad->registerEdit(spin);
+    for (QDoubleSpinBox *spin : {ui->doubleSpinBox_recharge_rate, ui->doubleSpinBox_recharge_eff,
+                                 ui->doubleSpinBox_compensation, ui->doubleSpinBox_float_v_cell,
+                                 ui->doubleSpinBox_boost_v_cell, ui->doubleSpinBox_equalize_v_cell,
+                                 ui->doubleSpinBox_initialize_v_cell})
+    {
+        spin->setLocale(QLocale::c());      // always use "." as the decimal point
+        batteryKeypad->registerEdit(spin);
+    }
+
+    // Not connected to the SP515 yet: recharge rate and efficiency are profile values that no
+    // command carries, and the daemon does not support the compensation commands (16 and 17) yet.
+    for (QDoubleSpinBox *spin : {ui->doubleSpinBox_recharge_rate, ui->doubleSpinBox_recharge_eff,
+                                 ui->doubleSpinBox_compensation})
+    {
+        spin->setEnabled(false);
+        spin->setToolTip("Not connected to the SP515 yet");
+    }
+
+    // Remember which block the user edited, so Save sends only those
+    connect(ui->comboBox_battery_type, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) { batteryEdited(BlockBattery); });
+    connect(ui->spinBox_capacity, qOverload<int>(&QSpinBox::valueChanged), this, [this](int) { batteryEdited(BlockBattery); });
+    connect(ui->spinBox_cells,    qOverload<int>(&QSpinBox::valueChanged), this, [this](int) { batteryEdited(BlockBattery); });
+    connect(ui->spinBox_strings,  qOverload<int>(&QSpinBox::valueChanged), this, [this](int) { batteryEdited(BlockBattery); });
+    for (int block : {BlockFloat, BlockBoost, BlockEqualize, BlockInitialize})
+        connect(batteryCellVSpin(block), qOverload<double>(&QDoubleSpinBox::valueChanged), this,
+                [this, block](double) { batteryEdited(block); });
+
+    // Read the values every time the page is opened
+    connect(ui->stackedWidget, &QStackedWidget::currentChanged, this, [this](int)
+            {
+                if (ui->stackedWidget->currentWidget() == ui->pageBattery_settings)
+                    loadBatterySettings();
+            });
+    connect(rs485, &Rs485Client::replyReceived, this, &MainWindow::handleBatteryReply);
+
+    for (int block = 0; block < BlockCount; ++block)
+        setBatteryBlockEnabled(block, false);       // until the values have been read
+}
+
+void MainWindow::setBatteryBlockEnabled(int block, bool enabled)
+{
+    if (block == BlockBattery)
+    {
+        for (QWidget *w : {static_cast<QWidget *>(ui->comboBox_battery_type), static_cast<QWidget *>(ui->spinBox_capacity),
+                           static_cast<QWidget *>(ui->spinBox_cells), static_cast<QWidget *>(ui->spinBox_strings)})
+            w->setEnabled(enabled);
+    }
+    else
+    {
+        batteryCellVSpin(block)->setEnabled(enabled);
+    }
+}
+
+void MainWindow::setBatteryStatus(const QString &text, int kind)
+{
+    const char *color = kind == 1 ? "#43a047" : (kind == 2 ? "#e53935" : "");
+    ui->label_battset_status->setStyleSheet(*color ? QString("color: %1;").arg(color) : QString());
+    ui->label_battset_status->setText(text);
+}
+
+void MainWindow::updateBatteryButtons()
+{
+    ui->pushButton_battset_save->setEnabled(batteryPendingGets == 0 && batteryPendingSets == 0);
+}
+
+// Text for the red label next to a block. Status 3 means the daemon says the SP515 did not accept the
+// value or did not answer; the daemon does not tell those two apart.
+QString MainWindow::batteryErrorText(const QString &message, bool reading) const
+{
+    const quint8 status = rs485->lastErrorStatus();
+    if (status == 3)
+        return reading ? "No answer from the SP515" : "Not accepted by the SP515";
+    if (status == 0)
+        return "No answer from the daemon";         // not running, or too slow
+    return message;                                 // the daemon's own text (busy, not supported, ...)
+}
+
+void MainWindow::loadBatterySettings()
+{
+    if (batteryPendingGets > 0 || batteryPendingSets > 0)
+        return;                                     // a read or save is already running
+
+    batteryGetFailed = false;
+    setBatteryStatus("Reading from the SP515...", 0);
+    for (int block = 0; block < BlockCount; ++block)
+    {
+        batteryBlocks[block] = BatteryBlockState();
+        batteryErrorLabel(block)->clear();
+        setBatteryBlockEnabled(block, false);
+        ++batteryPendingGets;
+        rs485->sendCommand(batteryLayout[block].getCommand);
+    }
+    updateBatteryButtons();
+}
+
+void MainWindow::handleBatteryReply(quint16 command, const QByteArray &payload)
+{
+    bool handled = false;                           // every reply from the daemon comes through here, not only ours
+    for (int block = 0; block < BlockCount; ++block)
+    {
+        const BatteryBlockLayout &layout = batteryLayout[block];
+        if (command != layout.getCommand || batteryPendingGets == 0)
+            continue;
+
+        handled = true;
+        --batteryPendingGets;
+        if (payload.size() != layout.size)
+        {
+            batteryGetFailed = true;
+            batteryErrorLabel(block)->setText(QString("Unexpected reply length: %1 bytes").arg(payload.size()));
+        }
+        else
+        {
+            batteryBlocks[block].raw = payload;
+            batteryBlocks[block].loaded = true;
+
+            if (block == BlockBattery)
+            {
+                const quint8 type = quint8(payload.at(0));
+                int index = ui->comboBox_battery_type->currentIndex();
+                // The SP515 gives the chemistry only. Keep the chosen entry if it already has that
+                // chemistry, otherwise pick the first entry of that chemistry (none for "undefined").
+                if (index < 0 || index >= batteryComboCount || batteryTypeOfComboIndex[index] != type)
+                {
+                    index = -1;
+                    for (int i = 0; i < batteryComboCount; ++i)
+                        if (batteryTypeOfComboIndex[i] == type) { index = i; break; }
+                }
+                const QSignalBlocker b1(ui->comboBox_battery_type), b2(ui->spinBox_capacity),
+                                     b3(ui->spinBox_cells), b4(ui->spinBox_strings);
+                ui->comboBox_battery_type->setCurrentIndex(index);
+                ui->spinBox_cells->setValue(quint8(payload.at(1)));
+                ui->spinBox_strings->setValue(quint8(payload.at(2)));
+                ui->spinBox_capacity->setValue(qRound(floatAt(payload, 3)));
+            }
+            else
+            {
+                const QSignalBlocker blocker(batteryCellVSpin(block));
+                batteryCellVSpin(block)->setValue(double(floatAt(payload, layout.cellVOffset)));
+            }
+            setBatteryBlockEnabled(block, true);
+        }
+        break;
+    }
+
+    if (handled && batteryPendingGets == 0)
+    {
+        if (batteryGetFailed)
+            setBatteryStatus("Could not read all the values.", 2);
+        else
+            setBatteryStatus("Values read from the SP515.", 0);
+        updateBatteryButtons();
+    }
+}
+
+void MainWindow::batteryEdited(int block)
+{
+    batteryBlocks[block].dirty = true;
+    batteryErrorLabel(block)->clear();
+    if (batteryPendingSets == 0)
+        setBatteryStatus(QString(), 0);
+}
+
+// Result of a battery settings read (failures only) or save. Returns true when the command was one of ours.
+bool MainWindow::handleBatteryCommandFinished(quint16 command, bool ok, const QString &message)
+{
+    for (int block = 0; block < BlockCount; ++block)
+    {
+        const BatteryBlockLayout &layout = batteryLayout[block];
+
+        if (command == layout.getCommand)
+        {
+            if (ok || batteryPendingGets == 0)
+                return true;                        // success is handled in handleBatteryReply
+            --batteryPendingGets;
+            batteryGetFailed = true;
+            batteryErrorLabel(block)->setText(batteryErrorText(message, true));
+            if (batteryPendingGets == 0)
+            {
+                setBatteryStatus("Could not read all the values.", 2);
+                updateBatteryButtons();
+            }
+            return true;
+        }
+
+        if (command == layout.setCommand)
+        {
+            if (batteryPendingSets == 0)
+                return true;
+            --batteryPendingSets;
+            if (ok)
+            {
+                batteryBlocks[block].raw = batteryBlocks[block].sent;
+                batteryBlocks[block].dirty = false;
+                batteryErrorLabel(block)->clear();
+            }
+            else
+            {
+                batterySetFailed = true;
+                batteryErrorLabel(block)->setText(batteryErrorText(message, false));
+            }
+            if (batteryPendingSets == 0)
+            {
+                if (batterySetFailed)
+                    setBatteryStatus("Some values were not saved.", 2);
+                else
+                    setBatteryStatus("Saved.", 1);
+                updateBatteryButtons();
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
+void MainWindow::on_pushButton_battset_save_clicked()
+{
+    if (batteryPendingGets > 0 || batteryPendingSets > 0)
+        return;
+
+    // Build the messages first, so nothing is sent if one of them cannot be made
+    QByteArray payloads[BlockCount];
+    bool send[BlockCount] = {};
+    for (int block = 0; block < BlockCount; ++block)
+    {
+        if (!batteryBlocks[block].dirty || !batteryBlocks[block].loaded)
+            continue;
+
+        QByteArray payload = batteryBlocks[block].raw;
+        if (block == BlockBattery)
+        {
+            const int index = ui->comboBox_battery_type->currentIndex();
+            if (index < 0 || index >= batteryComboCount)
+            {
+                batteryErrorLabel(BlockBattery)->setText("Choose a battery type");
+                setBatteryStatus("Nothing was saved.", 2);
+                return;
+            }
+            payload[0] = char(batteryTypeOfComboIndex[index]);
+            payload[1] = char(ui->spinBox_cells->value());
+            payload[2] = char(ui->spinBox_strings->value());
+            putFloat(payload, 3, float(ui->spinBox_capacity->value()));
+        }
+        else
+        {
+            // Keep everything else in the config as the SP515 reported it; only the V/Cell changes
+            putFloat(payload, batteryLayout[block].cellVOffset, float(batteryCellVSpin(block)->value()));
+        }
+        payloads[block] = payload;
+        send[block] = true;
+    }
+
+    batterySetFailed = false;
+    for (int block = 0; block < BlockCount; ++block)
+    {
+        if (!send[block])
+            continue;
+        batteryErrorLabel(block)->clear();
+        batteryBlocks[block].sent = payloads[block];
+        ++batteryPendingSets;
+        rs485->sendCommand(batteryLayout[block].setCommand, payloads[block], batterySetTimeoutMs);
+    }
+
+    if (batteryPendingSets == 0)
+    {
+        setBatteryStatus("No changes to save.", 0);
+        return;
+    }
+    setBatteryStatus("Saving...", 0);
+    updateBatteryButtons();
+}

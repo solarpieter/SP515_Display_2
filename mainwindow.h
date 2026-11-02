@@ -3,6 +3,7 @@
 
 #include <QButtonGroup>
 #include <QDateTime>
+#include <QDoubleSpinBox>
 #include <QElapsedTimer>
 #include <QLabel>
 #include <QProgressBar>
@@ -90,6 +91,8 @@ private slots:
 
     void on_pushButton_battset_back_clicked();
 
+    void on_pushButton_battset_save_clicked();
+
 private:
     Ui::MainWindow *ui;
     bool darkMode;
@@ -159,6 +162,34 @@ private:
     Rs485Client *rs485;
     QTimer *pollTimer;
     bool daemonOk = false;
+
+    // Battery settings page. The SP515 checks every value against its own limits;
+    // the display only reads the current values, lets them be edited, and sends them back.
+    enum BatteryBlock { BlockBattery, BlockFloat, BlockBoost, BlockEqualize, BlockInitialize, BlockCount };
+    struct BatteryBlockState
+    {
+        QByteArray raw;             // the config as last read from (or saved to) the SP515
+        QByteArray sent;            // what a running save has sent
+        bool loaded = false;        // read successfully: safe to edit and save
+        bool dirty = false;         // edited since it was loaded
+    };
+    BatteryBlockState batteryBlocks[BlockCount];
+    NumericKeypad *batteryKeypad = nullptr;
+    int batteryPendingGets = 0;                     // reads still waiting for an answer
+    int batteryPendingSets = 0;                     // saves still waiting for an answer
+    bool batterySetFailed = false;
+    bool batteryGetFailed = false;
+    void setupBatteryPage();
+    void loadBatterySettings();                     // ask the SP515 for all values (when the page opens)
+    void handleBatteryReply(quint16 command, const QByteArray &payload);
+    bool handleBatteryCommandFinished(quint16 command, bool ok, const QString &message);
+    void batteryEdited(int block);                  // the user changed a value in this block
+    void setBatteryBlockEnabled(int block, bool enabled);
+    void setBatteryStatus(const QString &text, int kind);       // kind: 0 neutral, 1 good, 2 error
+    void updateBatteryButtons();
+    QLabel *batteryErrorLabel(int block) const;
+    QDoubleSpinBox *batteryCellVSpin(int block) const;
+    QString batteryErrorText(const QString &message, bool reading) const;
 
     QDateTime appNow() const;       // system time plus the saved offset
     void updateClockLabels();       // dashboard date and time

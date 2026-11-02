@@ -7,7 +7,7 @@ Rs485Client::Rs485Client(QObject *parent, const QString &socketPath)
     : QObject(parent), m_path(socketPath)
 {
     m_timeout.setSingleShot(true);
-    m_timeout.setInterval(1500);
+    m_timeout.setInterval(DefaultTimeoutMs);
     connect(&m_timeout, &QTimer::timeout, this, [this]() {
         finishRequest(false, "daemon did not answer in time");
     });
@@ -76,15 +76,16 @@ void Rs485Client::setChargerSetpoint(bool enabled, float voltage, float currentL
     enqueue(SetChargeSetpoint, payload);
 }
 
-void Rs485Client::sendCommand(quint16 command, const QByteArray &payload)
+void Rs485Client::sendCommand(quint16 command, const QByteArray &payload, int timeoutMs)
 {
-    enqueue(command, payload);
+    enqueue(command, payload, timeoutMs);
 }
 
-void Rs485Client::enqueue(quint16 command, const QByteArray &payload)
+void Rs485Client::enqueue(quint16 command, const QByteArray &payload, int timeoutMs)
 {
     Request r;
     r.command = command;
+    r.timeoutMs = timeoutMs;
     r.transactionId = m_nextTransactionId++;
     if (m_nextTransactionId == 0)
         m_nextTransactionId = 1;
@@ -101,7 +102,8 @@ void Rs485Client::startNext()
     m_current = m_queue.dequeue();
     m_busy = true;
     m_buffer.clear();
-    m_timeout.start();
+    m_lastStatus = 0;
+    m_timeout.start(m_current.timeoutMs > 0 ? m_current.timeoutMs : DefaultTimeoutMs);
     m_socket.abort();
     m_socket.connectToServer(m_path);
 }
@@ -159,6 +161,7 @@ void Rs485Client::tryComplete()
     }
     if (command & ErrorFlag) {
         const quint8 status = payload.isEmpty() ? quint8(3) : quint8(payload.at(0));
+        m_lastStatus = status;
         finishRequest(false, statusText(status));
         return;
     }
