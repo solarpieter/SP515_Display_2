@@ -471,7 +471,7 @@ void MainWindow::on_pushButtonChargerenabledisable_clicked()
 
 void MainWindow::on_pushButtonBattery_settings_clicked()
 {
-
+ui->stackedWidget->setCurrentWidget(ui->pageBattery_settings);
 }
 
 
@@ -828,3 +828,15 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 
     return QMainWindow::eventFilter(watched, event);
 }
+
+void MainWindow::on_pushButton_battset_home_clicked()
+{
+    ui->stackedWidget->setCurrentWidget(ui->pageDashboard);
+}
+
+
+void MainWindow::on_pushButton_battset_back_clicked()
+{
+    ui->stackedWidget->setCurrentWidget(ui->pageMenu);
+}
+

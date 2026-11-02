@@ -86,6 +86,10 @@ private slots:
 
     void on_pushButton_menu_2_clicked();
 
+    void on_pushButton_battset_home_clicked();
+
+    void on_pushButton_battset_back_clicked();
+
 private:
     Ui::MainWindow *ui;
     bool darkMode;

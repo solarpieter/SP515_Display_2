@@ -43,6 +43,10 @@ QFrame#frame_battery_voltage_2,
 QFrame#frame_battery_current_2,
 QFrame#frame_system_alarms_2,
 QFrame#frame_screen_power,
+QFrame#frame_screen_brightness,
+QFrame#frame_frame_display_theme,
+QFrame#frame_screen_saver,
+QFrame#frame_radioButtonDark,
 QComboBox#combo_calibration_target
 {
     background-color: #000000;
