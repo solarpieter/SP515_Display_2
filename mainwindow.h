@@ -105,6 +105,8 @@ private slots:
 
     void on_pushButton_pid_back_clicked();
 
+    void on_pushButton_pid_save_clicked();
+
 private:
     Ui::MainWindow *ui;
     bool darkMode;
@@ -203,6 +205,23 @@ private:
     QLabel *batteryErrorLabel(int block) const;
     QDoubleSpinBox *batteryCellVSpin(int block) const;
     QString batteryErrorText(const QString &message, bool reading) const;
+
+    // PID settings page: the four gains are read when the page opens and saved with SAVE. While
+    // the page is open the rectifier voltage and current are polled every 200 ms.
+    NumericKeypad *pidKeypad = nullptr;
+    QTimer *pidPollTimer = nullptr;
+    QByteArray pidRaw;                              // the gains as last read from (or saved to) the SP515
+    QByteArray pidSent;                             // what a running save has sent
+    bool pidLoaded = false;
+    bool pidDirty[4] = {};                          // voltage Kp, voltage Ki, current Kp, current Ki: edited since loaded
+    bool pidGetPending = false;
+    bool pidSetPending = false;
+    void setupPidPage();
+    void loadPidSettings();
+    void handlePidReply(quint16 command, const QByteArray &payload);
+    bool handlePidCommandFinished(quint16 command, bool ok, const QString &message);
+    void setPidStatus(const QString &text, int kind);      // kind: 0 neutral, 1 good, 2 error
+    QDoubleSpinBox *pidSpin(int index) const;
 
     QDateTime appNow() const;       // system time plus the saved offset
     void updateClockLabels();       // dashboard date and time

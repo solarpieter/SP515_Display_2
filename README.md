@@ -31,7 +31,7 @@ The app runs fullscreen with no title bar.
 | Display Settings | Theme (dark, light, high contrast), back light slider, "Dim after" and "Screen saver after" timers. | Working |
 | Date / Time Settings | Edit the date and time. SAVE updates the dashboard clock. | Changes the app's clock only, not the Pi's system clock. |
 | Battery Settings | Battery type, capacity, cells per string, strings, and the float, boost, equalize and initialize V/Cell. The values are read from the SP515 when the page opens. SAVE sends only the values that were edited. The SP515 checks the limits; a value it does not accept gets a red message next to it. | Working. Recharge rate, recharge efficiency and temperature compensation can be edited but are not sent to the SP515 yet, see `PROJECT_NOTES.md`. |
-| Charger Settings, PID Settings | Menu, Charger Settings, then the PID Settings button. Each page has HOME, BACK and SAVE. | Pages and navigation only. SAVE and the PID values are not connected yet. |
+| Charger Settings, PID Settings | Menu, Charger Settings, then the PID Settings button. Each page has HOME, BACK and SAVE. | PID Settings: the four gains (voltage Kp and Ki, current Kp and Ki) are read when the page opens and saved with SAVE. The rectifier voltage and current are shown with three decimals and refreshed every 200 ms while the page is open. Needs daemon support for commands 25 and 26, see below. The Charger Settings page itself has no settings yet, and its SAVE does nothing. |
 | Alarm Settings | Page exists but no button opens it yet. | Not started |
 
 Numbers are entered with an on-screen numeric keypad that opens when a value box is tapped (0-9, `-`, `.`, backspace, Enter).
@@ -212,12 +212,13 @@ error   :  the reply command has bit 0x8000 set; the payload is one status byte
 | 6-13 | GET / SET FLOAT, BOOST, EQUALIZE, INITIALIZE config | config struct | config struct | yes |
 | 14-15 | GET / SET BATTERY config | U8 type (1 lead acid, 2 NiCad, 3 lithium), U8 cells per string, U8 strings, float capacity (7 bytes) | the same 7 bytes | yes |
 | 16-19 | GET / SET COMPENSATION, LVR config | | | not yet |
+| 25-26 | GET / SET PID config | none / 4 floats: voltage Kp, voltage Ki, current Kp, current Ki (16 bytes) | the same 16 bytes | not yet |
 | 20 | GET_ANA_GAINS | none | 9 gains then 9 offsets, floats, 72 bytes | yes |
 | 21 | SET_ANA_GAIN | U8 channel, float value | none | yes |
 | 22 | SET_ANA_OFFSET | U8 channel, float value | none | yes |
 | 23 | SET_CHARGE_SETPOINT | U8 enabled, float voltage, float currentLimit (9 bytes) | none | needs the charger patch |
 
-The display currently uses commands 1, 4, 6 to 15, 20, 21, 22 and 23.
+The display currently uses commands 1, 4, 6 to 15, 20, 21, 22, 23, 25 and 26.
 
 > Alarms: the daemon returns the alarm flags it holds, but it does not read them from the SP515 yet. Until it does, the display always shows NO ALARMS and the screen saver never shows the bouncing button on a real alarm.
 

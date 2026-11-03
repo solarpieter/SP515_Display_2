@@ -3312,7 +3312,7 @@
        <string>Current Kp</string>
       </property>
      </widget>
-     <widget class="QLabel" name="label_7">
+     <widget class="QLabel" name="label_current_ki">
       <property name="geometry">
        <rect>
         <x>110</x>
@@ -3375,7 +3375,7 @@
        </font>
       </property>
      </widget>
-     <widget class="QDoubleSpinBox" name="doubleSpinBox">
+     <widget class="QDoubleSpinBox" name="doubleSpinBox_currentki">
       <property name="geometry">
        <rect>
         <x>350</x>
@@ -3408,7 +3408,7 @@
        <string>Rectifier Voltage</string>
       </property>
      </widget>
-     <widget class="QLabel" name="label_rectifier_voltage5">
+     <widget class="QLabel" name="label_rectifier_voltage_value">
       <property name="geometry">
        <rect>
         <x>940</x>
@@ -3444,7 +3444,7 @@
        <string>Rectifier Current</string>
       </property>
      </widget>
-     <widget class="QLabel" name="label_rectifier_current4">
+     <widget class="QLabel" name="label_rectifier_current_value">
       <property name="geometry">
        <rect>
         <x>940</x>
@@ -3460,6 +3460,30 @@
       </property>
       <property name="text">
        <string>TextLabel</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_pid_status">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>540</y>
+        <width>590</width>
+        <height>50</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>16</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
       </property>
      </widget>
     </widget>

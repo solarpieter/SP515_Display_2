@@ -62,6 +62,7 @@ public:
         GetEqualizeConfig = 10, SetEqualizeConfig = 11,
         GetInitializeConfig = 12, SetInitializeConfig = 13,
         GetBatteryConfig = 14, SetBatteryConfig = 15,
+        GetPidConfig = 25, SetPidConfig = 26,
         GetAnaGains = 20,
         SetAnaGain = 21,
         SetAnaOffset = 22,

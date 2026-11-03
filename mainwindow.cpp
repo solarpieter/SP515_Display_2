@@ -124,6 +124,10 @@ MainWindow::MainWindow(QWidget *parent)
                     qDebug() << "rs485d: connected";
                 }
 
+                // PID page: rectifier voltage and current, three decimals
+                ui->label_rectifier_voltage_value->setText(m.complete ? QString::number(m.vRect, 'f', 3) + " V" : QString("--"));
+                ui->label_rectifier_current_value->setText(m.complete ? QString::number(m.iRect, 'f', 3) + " A" : QString("--"));
+
                 ui->label_batt_volt_value_2->setText(QString::number(m.vBatt, 'f', 1) + " V");
                 ui->label_batt_volt_value_3->setText(ui->label_batt_volt_value_2->text());     // Enable / Disable page
 
@@ -167,7 +171,9 @@ MainWindow::MainWindow(QWidget *parent)
                                       ui->label_batt_current_value_3,
                                       ui->label_batt_mode_value_4,
                                       ui->label_load_volt_value_2,
-                                      ui->label_load_current_value_2})
+                                      ui->label_load_current_value_2,
+                                      ui->label_rectifier_voltage_value,
+                                      ui->label_rectifier_current_value})
                 {
                     label->setText("--");
                 }
@@ -226,6 +232,8 @@ MainWindow::MainWindow(QWidget *parent)
             {
                 if (handleBatteryCommandFinished(command, ok, message))
                     return;                                 // a battery settings read or save
+                if (handlePidCommandFinished(command, ok, message))
+                    return;                                 // a PID settings read or save
 
                 if (command == Rs485Client::SetChargeSetpoint)
                 {
@@ -255,11 +263,13 @@ MainWindow::MainWindow(QWidget *parent)
 
     setupDisplayPage();
     setupBatteryPage();
+    setupPidPage();
 
     pollTimer = new QTimer(this);
     connect(pollTimer, &QTimer::timeout, this, [this]()
             {
-                rs485->requestAnalogueInputs();
+                if (!pidPollTimer->isActive())          // the PID page polls faster by itself
+                    rs485->requestAnalogueInputs();
                 if (++pollCount % 2 == 0)
                     rs485->requestAlarms();         // alarms every second
             });
@@ -1274,4 +1284,195 @@ void MainWindow::on_pushButton_battset_save_clicked()
     }
     setBatteryStatus("Saving...", 0);
     updateBatteryButtons();
+}
+
+
+// ---- PID settings page -----------------------------------------------------
+//
+// The four gains (voltage Kp, voltage Ki, current Kp, current Ki) are read from the SP515 when the
+// page opens (command 25) and saved with SAVE (command 26). The SP515 checks the values. While the
+// page is open the rectifier voltage and current are requested every 200 ms, so the effect of a
+// gain change on the output can be watched.
+
+namespace {
+const int pidFastPollMs = 200;
+const int pidGainCount = 4;
+const int pidPayloadSize = pidGainCount * 4;        // four little-endian floats, as in sPidConfig_t
+}
+
+QDoubleSpinBox *MainWindow::pidSpin(int index) const
+{
+    switch (index)
+    {
+    case 0: return ui->doubleSpinBox_voltagekp;
+    case 1: return ui->doubleSpinBox_voltageki;
+    case 2: return ui->doubleSpinBox_currentkp;
+    case 3: return ui->doubleSpinBox_currentki;
+    }
+    return nullptr;
+}
+
+void MainWindow::setupPidPage()
+{
+    ui->label_pid_status->clear();
+    ui->label_rectifier_voltage_value->setText("--");
+    ui->label_rectifier_current_value->setText("--");
+
+    // Four decimals: with the default two, a gain such as 0.005 would be shown as 0.01
+    pidKeypad = new NumericKeypad(ui->pagePID_settings);
+    pidKeypad->setKeySize(84, 72);
+    for (int i = 0; i < pidGainCount; ++i)
+    {
+        QDoubleSpinBox *spin = pidSpin(i);
+        spin->setDecimals(4);
+        spin->setRange(0.0, 9999.9999);
+        spin->setLocale(QLocale::c());              // always use "." as the decimal point
+        spin->setEnabled(false);                    // until the values have been read
+        pidKeypad->registerEdit(spin);
+        connect(spin, qOverload<double>(&QDoubleSpinBox::valueChanged), this, [this, i](double)
+                {
+                    pidDirty[i] = true;
+                    if (!pidSetPending)
+                        setPidStatus(QString(), 0);
+                });
+    }
+
+    pidPollTimer = new QTimer(this);
+    connect(pidPollTimer, &QTimer::timeout, this, [this]() { rs485->requestAnalogueInputs(); });
+
+    // Read the gains and start the fast readout when the page opens; stop it when it closes
+    connect(ui->stackedWidget, &QStackedWidget::currentChanged, this, [this](int)
+            {
+                if (ui->stackedWidget->currentWidget() == ui->pagePID_settings)
+                {
+                    pidPollTimer->start(pidFastPollMs);
+                    rs485->requestAnalogueInputs();
+                    loadPidSettings();
+                }
+                else
+                {
+                    pidPollTimer->stop();
+                }
+            });
+    connect(rs485, &Rs485Client::replyReceived, this, &MainWindow::handlePidReply);
+}
+
+void MainWindow::setPidStatus(const QString &text, int kind)
+{
+    const char *color = kind == 1 ? "#43a047" : (kind == 2 ? "#e53935" : "");
+    ui->label_pid_status->setStyleSheet(*color ? QString("color: %1;").arg(color) : QString());
+    ui->label_pid_status->setText(text);
+}
+
+void MainWindow::loadPidSettings()
+{
+    if (pidGetPending || pidSetPending)
+        return;
+
+    pidLoaded = false;
+    pidRaw.clear();
+    for (int i = 0; i < pidGainCount; ++i)
+    {
+        pidDirty[i] = false;
+        pidSpin(i)->setEnabled(false);
+    }
+    setPidStatus("Reading from the SP515...", 0);
+    pidGetPending = true;
+    rs485->sendCommand(Rs485Client::GetPidConfig);
+}
+
+void MainWindow::handlePidReply(quint16 command, const QByteArray &payload)
+{
+    if (command != Rs485Client::GetPidConfig || !pidGetPending)
+        return;
+
+    pidGetPending = false;
+    if (payload.size() != pidPayloadSize)
+    {
+        setPidStatus(QString("Unexpected reply length: %1 bytes").arg(payload.size()), 2);
+        return;
+    }
+
+    pidRaw = payload;
+    pidLoaded = true;
+    for (int i = 0; i < pidGainCount; ++i)
+    {
+        const QSignalBlocker blocker(pidSpin(i));
+        pidSpin(i)->setValue(double(floatAt(payload, i * 4)));
+        pidSpin(i)->setEnabled(true);
+    }
+    setPidStatus("Values read from the SP515.", 0);
+}
+
+// Result of a PID read (failures only) or save. Returns true when the command was one of ours.
+bool MainWindow::handlePidCommandFinished(quint16 command, bool ok, const QString &message)
+{
+    if (command == Rs485Client::GetPidConfig)
+    {
+        if (!ok && pidGetPending)
+        {
+            pidGetPending = false;
+            const quint8 status = rs485->lastErrorStatus();
+            setPidStatus(status == 3 ? QString("No answer from the SP515")
+                                     : (status == 0 ? QString("No answer from the daemon") : message), 2);
+        }
+        return true;
+    }
+
+    if (command == Rs485Client::SetPidConfig)
+    {
+        if (!pidSetPending)
+            return true;
+        pidSetPending = false;
+        if (ok)
+        {
+            pidRaw = pidSent;
+            for (bool &d : pidDirty)
+                d = false;
+            setPidStatus("Saved.", 1);
+        }
+        else
+        {
+            const quint8 status = rs485->lastErrorStatus();
+            setPidStatus(status == 3 ? QString("Not accepted by the SP515")
+                                     : (status == 0 ? QString("No answer from the daemon") : message), 2);
+        }
+        ui->pushButton_pid_save->setEnabled(true);
+        return true;
+    }
+    return false;
+}
+
+void MainWindow::on_pushButton_pid_save_clicked()
+{
+    if (pidGetPending || pidSetPending)
+        return;
+    if (!pidLoaded)
+    {
+        setPidStatus("The values have not been read from the SP515.", 2);
+        return;
+    }
+
+    // Start from the gains as the SP515 reported them and replace only the ones that were edited,
+    // so a gain shown rounded to four decimals is not written back rounded.
+    QByteArray payload = pidRaw;
+    bool any = false;
+    for (int i = 0; i < pidGainCount; ++i)
+    {
+        if (!pidDirty[i])
+            continue;
+        putFloat(payload, i * 4, float(pidSpin(i)->value()));
+        any = true;
+    }
+    if (!any)
+    {
+        setPidStatus("No changes to save.", 0);
+        return;
+    }
+
+    pidSent = payload;
+    pidSetPending = true;
+    ui->pushButton_pid_save->setEnabled(false);
+    setPidStatus("Saving...", 0);
+    rs485->sendCommand(Rs485Client::SetPidConfig, payload, 7000);      // the SP515 saves to flash
 }
