@@ -179,13 +179,14 @@ private:
     int batteryPendingSets = 0;                     // saves still waiting for an answer
     bool batterySetFailed = false;
     bool batteryGetFailed = false;
+    bool batteryUnsentEdited = false;               // recharge rate, efficiency or compensation edited: not sent to the SP515
     void setupBatteryPage();
     void loadBatterySettings();                     // ask the SP515 for all values (when the page opens)
     void handleBatteryReply(quint16 command, const QByteArray &payload);
     bool handleBatteryCommandFinished(quint16 command, bool ok, const QString &message);
     void batteryEdited(int block);                  // the user changed a value in this block
     void setBatteryBlockEnabled(int block, bool enabled);
-    void setBatteryStatus(const QString &text, int kind);       // kind: 0 neutral, 1 good, 2 error
+    void setBatteryStatus(const QString &text, int kind);       // kind: 0 neutral, 1 good, 2 error, 3 warning
     void updateBatteryButtons();
     QLabel *batteryErrorLabel(int block) const;
     QDoubleSpinBox *batteryCellVSpin(int block) const;

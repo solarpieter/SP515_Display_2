@@ -47,7 +47,8 @@ QFrame#frame_screen_brightness,
 QFrame#frame_frame_display_theme,
 QFrame#frame_screen_saver,
 QFrame#frame_radioButtonDark,
-QComboBox#combo_calibration_target
+QComboBox#combo_calibration_target,
+QComboBox#comboBox_battery_type
 {
     background-color: #000000;
     border: 2px solid #707070;

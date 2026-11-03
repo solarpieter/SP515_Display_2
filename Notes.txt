@@ -1,7 +1,7 @@
 SP515_Display_2
 
 Build and Run Daemon
-cd Documents/SP515v1-rpi
+cd Documents/SP515v1-rpi-main
 rm -rf build rs485d
 make
 ls -l rs485d
@@ -55,3 +55,36 @@ That clones the repository and fetches its branches. To switch to one, use the b
 bash
 git switch --track origin/BRANCH_NAME
 ui->stackedWidget->setCurrentWidget(ui->pageSystemInfo);
+
+
+Preparing git commands to apply the patch.
+Preparing git commands to apply the patch.
+Run these on the Pi. I’m assuming the patch is in ~/Downloads, so adjust that path if it landed elsewhere.
+
+bash
+cd ~/Documents/SP515_Display_2
+
+# 1. Make sure you are on main with nothing uncommitted, and up to date
+git status
+git pull
+
+# 2. Check that the patch applies (t
+
+his changes nothing)
+git apply --check ~/Downloads/battery_settings.patch
+
+# 3. Apply it
+git apply ~/Downloads/battery_settings.patch
+
+# 4. Review what changed
+git status
+git diff --stat
+
+# 5. Build and test it before committing
+cmake -S . -B build/Desktop-Debug -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/Desktop-Debug
+
+# 6. Commit and push
+git add -A
+git commit -m "Battery settings page: numeric keypad, read from and save to the SP515"
+git push

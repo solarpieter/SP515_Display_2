@@ -30,7 +30,7 @@ The app runs fullscreen with no title bar.
 | Calibration | Pick a measurement, enter what a reference meter shows, then Calibrate (gain) or Apply Offset. A 3 second progress bar runs, then a green OK or red FAIL appears. | Working. Two assumptions need confirming, see `PROJECT_NOTES.md`. |
 | Display Settings | Theme (dark, light, high contrast), back light slider, "Dim after" and "Screen saver after" timers. | Working |
 | Date / Time Settings | Edit the date and time. SAVE updates the dashboard clock. | Changes the app's clock only, not the Pi's system clock. |
-| Battery Settings | Battery type, capacity, cells per string, strings, and the float, boost, equalize and initialize V/Cell. The values are read from the SP515 when the page opens. SAVE sends only the values that were edited. The SP515 checks the limits; a value it does not accept gets a red message next to it. | Working. Recharge rate, recharge efficiency and temperature compensation are shown but not connected yet, see `PROJECT_NOTES.md`. |
+| Battery Settings | Battery type, capacity, cells per string, strings, and the float, boost, equalize and initialize V/Cell. The values are read from the SP515 when the page opens. SAVE sends only the values that were edited. The SP515 checks the limits; a value it does not accept gets a red message next to it. | Working. Recharge rate, recharge efficiency and temperature compensation can be edited but are not sent to the SP515 yet, see `PROJECT_NOTES.md`. |
 | Alarm Settings | Page exists but no button opens it yet. | Not started |
 
 Numbers are entered with an on-screen numeric keypad that opens when a value box is tapped (0-9, `-`, `.`, backspace, Enter).

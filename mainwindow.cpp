@@ -879,6 +879,8 @@ const BatteryBlockLayout batteryLayout[] =
 // A config SET can take the daemon up to 5 s, so wait a little longer than that.
 const int batterySetTimeoutMs = 7000;
 
+const char *const batteryUnsentNote = "Recharge rate, efficiency and compensation are not sent to the SP515 yet.";
+
 // The battery type list on the page has six entries; the SP515 stores only the chemistry.
 // Index in comboBox_battery_type -> eBattType_t (1 lead acid, 2 NiCad, 3 lithium).
 const quint8 batteryTypeOfComboIndex[] = { 1, 1, 2, 2, 2, 3 };
@@ -942,6 +944,9 @@ void MainWindow::setupBatteryPage()
     ui->spinBox_cells->setRange(0, 255);
     ui->spinBox_strings->setRange(0, 255);
 
+    // Temperature compensation is normally negative (mV per degree C per cell)
+    ui->doubleSpinBox_compensation->setRange(-999.99, 999.99);
+
     // Cell voltages need three decimals, or a value such as 2.275 V would be shown (and saved) as 2.28 V
     for (int block : {BlockFloat, BlockBoost, BlockEqualize, BlockInitialize})
     {
@@ -965,14 +970,16 @@ void MainWindow::setupBatteryPage()
         batteryKeypad->registerEdit(spin);
     }
 
-    // Not connected to the SP515 yet: recharge rate and efficiency are profile values that no
-    // command carries, and the daemon does not support the compensation commands (16 and 17) yet.
+    // Recharge rate, recharge efficiency and temperature compensation can be edited, but are not sent
+    // to the SP515 yet: no command carries the profile values, and the daemon does not support the
+    // compensation commands (16 and 17) yet. Say so when one is edited.
     for (QDoubleSpinBox *spin : {ui->doubleSpinBox_recharge_rate, ui->doubleSpinBox_recharge_eff,
                                  ui->doubleSpinBox_compensation})
-    {
-        spin->setEnabled(false);
-        spin->setToolTip("Not connected to the SP515 yet");
-    }
+        connect(spin, qOverload<double>(&QDoubleSpinBox::valueChanged), this, [this](double)
+                {
+                    batteryUnsentEdited = true;
+                    setBatteryStatus(batteryUnsentNote, 3);
+                });
 
     // Remember which block the user edited, so Save sends only those
     connect(ui->comboBox_battery_type, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) { batteryEdited(BlockBattery); });
@@ -1011,7 +1018,8 @@ void MainWindow::setBatteryBlockEnabled(int block, bool enabled)
 
 void MainWindow::setBatteryStatus(const QString &text, int kind)
 {
-    const char *color = kind == 1 ? "#43a047" : (kind == 2 ? "#e53935" : "");
+    // kind: 0 neutral, 1 good (green), 2 error (red), 3 warning (orange)
+    const char *color = kind == 1 ? "#43a047" : (kind == 2 ? "#e53935" : (kind == 3 ? "#fb8c00" : ""));
     ui->label_battset_status->setStyleSheet(*color ? QString("color: %1;").arg(color) : QString());
     ui->label_battset_status->setText(text);
 }
@@ -1039,6 +1047,7 @@ void MainWindow::loadBatterySettings()
         return;                                     // a read or save is already running
 
     batteryGetFailed = false;
+    batteryUnsentEdited = false;
     setBatteryStatus("Reading from the SP515...", 0);
     for (int block = 0; block < BlockCount; ++block)
     {
@@ -1161,6 +1170,8 @@ bool MainWindow::handleBatteryCommandFinished(quint16 command, bool ok, const QS
             {
                 if (batterySetFailed)
                     setBatteryStatus("Some values were not saved.", 2);
+                else if (batteryUnsentEdited)
+                    setBatteryStatus(QString("Saved. ") + batteryUnsentNote, 3);
                 else
                     setBatteryStatus("Saved.", 1);
                 updateBatteryButtons();
@@ -1221,7 +1232,10 @@ void MainWindow::on_pushButton_battset_save_clicked()
 
     if (batteryPendingSets == 0)
     {
-        setBatteryStatus("No changes to save.", 0);
+        if (batteryUnsentEdited)
+            setBatteryStatus(batteryUnsentNote, 3);
+        else
+            setBatteryStatus("No changes to save.", 0);
         return;
     }
     setBatteryStatus("Saving...", 0);

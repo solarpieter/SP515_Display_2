@@ -42,7 +42,8 @@ QFrame#frame_battery_voltage_2,
 QFrame#frame_battery_current_2,
 QFrame#frame_system_alarms_2,
 QFrame#frame_screen_power,
-QComboBox#combo_calibration_target
+QComboBox#combo_calibration_target,
+QComboBox#comboBox_battery_type
 {
     background-color: #000000;
     border: 3px solid #FFFFFF;
