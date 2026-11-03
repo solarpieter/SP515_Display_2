@@ -849,6 +849,40 @@ void MainWindow::on_pushButton_battset_back_clicked()
 }
 
 
+// ---- Charger settings and PID pages ----------------------------------------
+// Menu -> Charger Settings -> PID Settings. The SAVE buttons on both pages are not connected yet.
+
+void MainWindow::on_pushButtonCharger_settings_clicked()
+{
+    ui->stackedWidget->setCurrentWidget(ui->pageCharger_settings);
+}
+
+void MainWindow::on_pushButton_chgset_home_clicked()
+{
+    ui->stackedWidget->setCurrentWidget(ui->pageDashboard);
+}
+
+void MainWindow::on_pushButton_chgset_back_clicked()
+{
+    ui->stackedWidget->setCurrentWidget(ui->pageMenu);
+}
+
+void MainWindow::on_pushButton_chgset_pid_clicked()
+{
+    ui->stackedWidget->setCurrentWidget(ui->pagePID_settings);
+}
+
+void MainWindow::on_pushButton_pid_home_clicked()
+{
+    ui->stackedWidget->setCurrentWidget(ui->pageDashboard);
+}
+
+void MainWindow::on_pushButton_pid_back_clicked()
+{
+    ui->stackedWidget->setCurrentWidget(ui->pageCharger_settings);
+}
+
+
 // ---- Battery settings page -------------------------------------------------
 //
 // Five configs are read when the page opens: battery (14), float (6), boost (8),

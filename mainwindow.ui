@@ -3104,6 +3104,161 @@
       </widget>
      </widget>
     </widget>
+    <widget class="QWidget" name="pageCharger_settings">
+     <widget class="QPushButton" name="pushButton_chgset_pid">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>20</y>
+        <width>400</width>
+        <height>100</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>24</pointsize>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>PID Settings</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_chgset_home">
+      <property name="geometry">
+       <rect>
+        <x>1</x>
+        <y>610</y>
+        <width>205</width>
+        <height>100</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset theme="QIcon::ThemeIcon::GoHome"/>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>80</width>
+        <height>80</height>
+       </size>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_chgset_back">
+      <property name="geometry">
+       <rect>
+        <x>240</x>
+        <y>610</y>
+        <width>205</width>
+        <height>100</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset theme="QIcon::ThemeIcon::GoPrevious"/>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>80</width>
+        <height>80</height>
+       </size>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_chgset_save">
+      <property name="geometry">
+       <rect>
+        <x>481</x>
+        <y>610</y>
+        <width>205</width>
+        <height>100</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset theme="QIcon::ThemeIcon::DocumentSave"/>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>80</width>
+        <height>80</height>
+       </size>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="pagePID_settings">
+     <widget class="QPushButton" name="pushButton_pid_home">
+      <property name="geometry">
+       <rect>
+        <x>1</x>
+        <y>610</y>
+        <width>205</width>
+        <height>100</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset theme="QIcon::ThemeIcon::GoHome"/>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>80</width>
+        <height>80</height>
+       </size>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_pid_back">
+      <property name="geometry">
+       <rect>
+        <x>240</x>
+        <y>610</y>
+        <width>205</width>
+        <height>100</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset theme="QIcon::ThemeIcon::GoPrevious"/>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>80</width>
+        <height>80</height>
+       </size>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_pid_save">
+      <property name="geometry">
+       <rect>
+        <x>481</x>
+        <y>610</y>
+        <width>205</width>
+        <height>100</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset theme="QIcon::ThemeIcon::DocumentSave"/>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>80</width>
+        <height>80</height>
+       </size>
+      </property>
+     </widget>
+    </widget>
    </widget>
   </widget>
  </widget>

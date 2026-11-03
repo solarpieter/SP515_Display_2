@@ -93,6 +93,18 @@ private slots:
 
     void on_pushButton_battset_save_clicked();
 
+    void on_pushButtonCharger_settings_clicked();
+
+    void on_pushButton_chgset_home_clicked();
+
+    void on_pushButton_chgset_back_clicked();
+
+    void on_pushButton_chgset_pid_clicked();
+
+    void on_pushButton_pid_home_clicked();
+
+    void on_pushButton_pid_back_clicked();
+
 private:
     Ui::MainWindow *ui;
     bool darkMode;

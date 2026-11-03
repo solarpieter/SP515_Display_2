@@ -31,6 +31,7 @@ The app runs fullscreen with no title bar.
 | Display Settings | Theme (dark, light, high contrast), back light slider, "Dim after" and "Screen saver after" timers. | Working |
 | Date / Time Settings | Edit the date and time. SAVE updates the dashboard clock. | Changes the app's clock only, not the Pi's system clock. |
 | Battery Settings | Battery type, capacity, cells per string, strings, and the float, boost, equalize and initialize V/Cell. The values are read from the SP515 when the page opens. SAVE sends only the values that were edited. The SP515 checks the limits; a value it does not accept gets a red message next to it. | Working. Recharge rate, recharge efficiency and temperature compensation can be edited but are not sent to the SP515 yet, see `PROJECT_NOTES.md`. |
+| Charger Settings, PID Settings | Menu, Charger Settings, then the PID Settings button. Each page has HOME, BACK and SAVE. | Pages and navigation only. SAVE and the PID values are not connected yet. |
 | Alarm Settings | Page exists but no button opens it yet. | Not started |
 
 Numbers are entered with an on-screen numeric keypad that opens when a value box is tapped (0-9, `-`, `.`, backspace, Enter).

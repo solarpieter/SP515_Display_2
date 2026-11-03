@@ -58,7 +58,7 @@ To add a page:
 
 The app always starts on the dashboard (set in the `MainWindow` constructor), because Qt Designer saves whichever page was open last as the start page.
 
-Current pages: `pageDashboard`, `pageMenu`, `pageCalibration`, `pageBattery_settings`, `pageAlarm_settings`, `pageDisplay_settings`, `pageDate_settings`, `pageTime_settings`, `pageEnable_Disable`.
+Current pages: `pageDashboard`, `pageMenu`, `pageCalibration`, `pageBattery_settings`, `pageAlarm_settings`, `pageDisplay_settings`, `pageDate_settings`, `pageTime_settings`, `pageEnable_Disable`, `pageCharger_settings`, `pagePID_settings`.
 
 ## Open items
 
