@@ -107,6 +107,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->label_batt_volt_value_3->setText(ui->label_batt_volt_value_2->text());
     ui->label_batt_current_value_3->setText(ui->label_batt_current_value_2->text());
     ui->label_alarms_value_3->setText(ui->label_alarms_value_2->text());
+    for (QLabel *label : {ui->label_4_rect_volt_value, ui->label_rect_curr_value,
+                          ui->label_rect_volt_value_4, ui->label_rect_current_value_4})
+        label->setText("--");                       // until the first reading arrives
+    setSystemInfo("RECTIFIER --", nullptr, "Waiting for the SP515...");
 
     // Live data from the rs485d daemon (it handles the RS485 link and CRC).
     // Ask for the analogue inputs twice a second and show them on the dashboard.
@@ -123,6 +127,14 @@ MainWindow::MainWindow(QWidget *parent)
                     daemonOk = true;
                     qDebug() << "rs485d: connected";
                 }
+
+                // Dashboard and Enable / Disable page: rectifier voltage and current
+                const QString rectV = m.complete ? QString::number(m.vRect, 'f', 1) + " V" : QString("--");
+                const QString rectI = m.complete ? QString::number(m.iRect, 'f', 1) + " A" : QString("--");
+                ui->label_4_rect_volt_value->setText(rectV);
+                ui->label_rect_volt_value_4->setText(rectV);
+                ui->label_rect_curr_value->setText(rectI);
+                ui->label_rect_current_value_4->setText(rectI);
 
                 // PID page: rectifier voltage and current, three decimals
                 ui->label_rectifier_voltage_value->setText(m.complete ? QString::number(m.vRect, 'f', 3) + " V" : QString("--"));
@@ -173,16 +185,31 @@ MainWindow::MainWindow(QWidget *parent)
                                       ui->label_load_volt_value_2,
                                       ui->label_load_current_value_2,
                                       ui->label_rectifier_voltage_value,
-                                      ui->label_rectifier_current_value})
+                                      ui->label_rectifier_current_value,
+                                      ui->label_4_rect_volt_value,
+                                      ui->label_rect_curr_value,
+                                      ui->label_rect_volt_value_4,
+                                      ui->label_rect_current_value_4})
                 {
                     label->setText("--");
                 }
+                setSystemInfo("RECTIFIER --", nullptr, "No link to the daemon");
                 showAlarmState(false, false);
             });
 
     connect(rs485, &Rs485Client::alarmsReceived, this, [this](const Alarms &a)
             {
                 showAlarmState(true, a.any());
+            });
+
+    // Dashboard, next to "System Status": is the rectifier really enabled (as reported by the SP515)
+    connect(rs485, &Rs485Client::statusReceived, this, [this](const Status &st)
+            {
+                const bool bad = st.configDefaulted != 0;
+                setSystemInfo(st.enabled ? "RECTIFIER ENABLED" : "RECTIFIER DISABLED",
+                              st.enabled ? "#43a047" : "#fb8c00",
+                              bad ? "CONFIG DEFAULTED" : "Config OK",
+                              bad ? "#e53935" : nullptr);
             });
 
     // Calibration page: progress bar and the OK / FAIL labels (found by name, hidden until used)
@@ -234,6 +261,12 @@ MainWindow::MainWindow(QWidget *parent)
                     return;                                 // a battery settings read or save
                 if (handlePidCommandFinished(command, ok, message))
                     return;                                 // a PID settings read or save
+                if (command == Rs485Client::GetStatus)      // only failures arrive here
+                {
+                    const bool noAnswer = rs485->lastErrorStatus() == 3;
+                    setSystemInfo("RECTIFIER --", nullptr, noAnswer ? "No answer from the SP515" : "No link to the daemon");
+                    return;
+                }
 
                 if (command == Rs485Client::SetChargeSetpoint)
                 {
@@ -272,8 +305,24 @@ MainWindow::MainWindow(QWidget *parent)
                     rs485->requestAnalogueInputs();
                 if (++pollCount % 2 == 0)
                     rs485->requestAlarms();         // alarms every second
+                else
+                    rs485->requestStatus();         // and the SP515 status every second
             });
     pollTimer->start(500);
+}
+
+// Two lines of text next to "System Status" on the dashboard. Colours are optional (nullptr = the theme's text colour).
+void MainWindow::setSystemInfo(const QString &line1, const char *color1, const QString &line2, const char *color2)
+{
+    auto line = [](const QString &text, const char *color, int pt, bool bold)
+    {
+        return QString("<div style=\"font-size:%1pt;%2%3\">%4</div>")
+            .arg(pt)
+            .arg(bold ? "font-weight:bold;" : "")
+            .arg(color ? QString("color:%1;").arg(color) : QString())
+            .arg(text.toHtmlEscaped());
+    };
+    ui->label_system_info->setText(line(line1, color1, 18, true) + line(line2, color2, 14, false));
 }
 
 // System time plus whatever offset was saved on the date/time page

@@ -33,6 +33,14 @@ void Rs485Client::requestAnalogueInputs()
     enqueue(GetAnalogueInputs, QByteArray());
 }
 
+void Rs485Client::requestStatus()
+{
+    if (m_statusPending)
+        return;
+    m_statusPending = true;
+    enqueue(GetStatus, QByteArray());
+}
+
 void Rs485Client::requestAlarms()
 {
     if (m_alarmsPending)
@@ -196,6 +204,8 @@ void Rs485Client::finishRequest(bool ok, const QString &message, const QByteArra
         m_pollPending = false;
     if (done.command == GetAlarms)
         m_alarmsPending = false;
+    if (done.command == GetStatus)
+        m_statusPending = false;
 
     if (ok) {
         QDataStream in(payload);
@@ -221,6 +231,21 @@ void Rs485Client::finishRequest(bool ok, const QString &message, const QByteArra
                 for (int i = 0; i < payload.size(); ++i)
                     a.bits |= quint32(quint8(payload.at(i))) << (8 * i);
                 emit alarmsReceived(a);
+            }
+        } else if (done.command == GetStatus) {
+            if (payload.size() != 16) {
+                emit commandFinished(done.command, false,
+                                     QString("unexpected reply length: %1 bytes").arg(payload.size()));
+            } else {
+                Status st;
+                in >> st.outputVoltage >> st.outputCurrent >> st.batteryVoltage;
+                quint8 b[4];
+                for (quint8 &x : b) in >> x;
+                st.enabled = b[0];
+                st.mode = b[1];
+                st.alarmCount = b[2];
+                st.configDefaulted = b[3];
+                emit statusReceived(st);
             }
         } else if (done.command == GetAnaGains) {
             if (payload.size() != 2 * AnalogueCalibration::ChannelCount * int(sizeof(float))) {

@@ -195,6 +195,7 @@ private:
     bool batteryGetFailed = false;
     bool batteryUnsentEdited = false;               // recharge rate, efficiency or compensation edited: not sent to the SP515
     void setupBatteryPage();
+    void setSystemInfo(const QString &line1, const char *color1, const QString &line2, const char *color2 = nullptr);   // two-line text on the dashboard
     void loadBatterySettings();                     // ask the SP515 for all values (when the page opens)
     void handleBatteryReply(quint16 command, const QByteArray &payload);
     bool handleBatteryCommandFinished(quint16 command, bool ok, const QString &message);

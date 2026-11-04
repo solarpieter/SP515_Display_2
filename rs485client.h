@@ -18,6 +18,16 @@ struct Measurements
     bool  complete = false;   // true once all values were received
 };
 
+// Status reported by the SP515 (command 0): output, battery and charger state
+struct Status
+{
+    float outputVoltage = 0, outputCurrent = 0, batteryVoltage = 0;
+    quint8 enabled = 0;           // 1 when the charger is enabled
+    quint8 mode = 0;              // charge mode number
+    quint8 alarmCount = 0;
+    quint8 configDefaulted = 0;   // 1 when the stored config could not be loaded at boot
+};
+
 // Alarm flags from the SP515. Bit 0 is alarm 1; any bit set means an alarm is active.
 struct Alarms
 {
@@ -79,6 +89,9 @@ public:
     // Ask for the alarm flags. Ignored while one is already waiting.
     void requestAlarms();
 
+    // Ask for the SP515 status (is the charger really enabled, ...). Ignored while one is already waiting.
+    void requestStatus();
+
     // Gains and offsets for all channels
     void requestAnalogueCalibration();
 
@@ -106,6 +119,7 @@ signals:
     void analogueInputsReceived(const Measurements &m);
     void analogueCalibrationReceived(const AnalogueCalibration &c);
     void alarmsReceived(const Alarms &a);
+    void statusReceived(const Status &s);
 
     // Raw payload of every successful reply
     void replyReceived(quint16 command, const QByteArray &payload);
@@ -149,6 +163,7 @@ private:
     bool m_busy = false;
     bool m_pollPending = false;
     bool m_alarmsPending = false;
+    bool m_statusPending = false;
     quint8 m_lastStatus = 0;
 };
 

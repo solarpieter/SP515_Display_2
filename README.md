@@ -24,9 +24,9 @@ The app runs fullscreen with no title bar.
 
 | Page | What it does | Status |
 |---|---|---|
-| Dashboard | Live battery voltage, battery current, battery temperature, load voltage, load current and system alarms, plus date and time. Shows `--` when the daemon cannot be reached. | Working |
+| Dashboard | Live battery voltage, battery current, battery temperature, load voltage, load current, rectifier voltage, rectifier current and system alarms, plus date and time. Next to "System Status" a two-line block shows whether the SP515 reports the rectifier as enabled or disabled, and whether its stored configuration loaded (read once a second with command 0). Shows `--` when the daemon cannot be reached. | Working. The battery mode block still shows a fixed "EQUALIZE". |
 | Menu | Buttons to the settings pages, HOME, BACK. | Charger Enable / Disable, Calibration, Battery Settings, Display Settings and Date / Time Settings are connected. The other buttons are placeholders. |
-| Charger Enable / Disable | A slide switch with a Yes / No question. The switch only moves after the SP515 has confirmed. Shows battery voltage, battery current and system alarms like the dashboard. | Working. Needs the charger voltage and current limit from the settings pages, see [Charger switch](#charger-switch). |
+| Charger Enable / Disable | A slide switch with a Yes / No question. The switch only moves after the SP515 has confirmed. Shows battery voltage, battery current, rectifier voltage, rectifier current and system alarms like the dashboard. | Working. Needs the charger voltage and current limit from the settings pages, see [Charger switch](#charger-switch). |
 | Calibration | Pick a measurement, enter what a reference meter shows, then Calibrate (gain) or Apply Offset. A 3 second progress bar runs, then a green OK or red FAIL appears. | Working. Two assumptions need confirming, see `PROJECT_NOTES.md`. |
 | Display Settings | Theme (dark, light, high contrast), back light slider, "Dim after" and "Screen saver after" timers. | Working |
 | Date / Time Settings | Edit the date and time. SAVE updates the dashboard clock. | Changes the app's clock only, not the Pi's system clock. |
@@ -218,7 +218,7 @@ error   :  the reply command has bit 0x8000 set; the payload is one status byte
 | 22 | SET_ANA_OFFSET | U8 channel, float value | none | yes |
 | 23 | SET_CHARGE_SETPOINT | U8 enabled, float voltage, float currentLimit (9 bytes) | none | needs the charger patch |
 
-The display currently uses commands 1, 4, 6 to 15, 20, 21, 22, 23, 25 and 26.
+The display currently uses commands 0, 1, 4, 6 to 15, 20, 21, 22, 23, 25 and 26.
 
 > Alarms: the daemon returns the alarm flags it holds, but it does not read them from the SP515 yet. Until it does, the display always shows NO ALARMS and the screen saver never shows the bouncing button on a real alarm.
 
@@ -242,6 +242,7 @@ The `Rs485Client` class (`rs485client.h` and `.cpp`) is the only place that know
 |---|---|
 | `requestAnalogueInputs()` | `analogueInputsReceived(Measurements)`, or `failed(reason)` |
 | `requestAlarms()` | `alarmsReceived(Alarms)` |
+| `requestStatus()` | `statusReceived(Status)`: output voltage and current, battery voltage, enabled, mode, alarm count, config defaulted (16 bytes) |
 | `requestAnalogueCalibration()` | `analogueCalibrationReceived(AnalogueCalibration)` |
 | `setAnalogueGain(channel, value)`, `setAnalogueOffset(channel, value)` | `commandFinished(command, ok, message)` |
 | `setChargerSetpoint(enabled, voltage, currentLimit)` | `commandFinished(23, ok, message)` |
