@@ -1578,3 +1578,9 @@ void MainWindow::on_pushButton_pid_save_clicked()
     setPidStatus("Saving...", 0);
     rs485->sendCommand(Rs485Client::SetPidConfig, payload, 7000);      // the SP515 saves to flash
 }
+
+void MainWindow::on_pushButton_8_clicked()
+{
+    ui->stackedWidget->setCurrentWidget(ui->pageBoost_settings);
+}
+
