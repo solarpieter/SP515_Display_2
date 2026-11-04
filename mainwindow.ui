@@ -2953,42 +2953,6 @@
        </font>
       </property>
      </widget>
-     <widget class="QLabel" name="label_equalize_repeat">
-      <property name="geometry">
-       <rect>
-        <x>520</x>
-        <y>410</y>
-        <width>201</width>
-        <height>61</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>18</pointsize>
-       </font>
-      </property>
-      <property name="text">
-       <string>Repeat every (Days)</string>
-      </property>
-      <property name="wordWrap">
-       <bool>true</bool>
-      </property>
-     </widget>
-     <widget class="QSpinBox" name="spinBox_equalize_repeat">
-      <property name="geometry">
-       <rect>
-        <x>730</x>
-        <y>420</y>
-        <width>171</width>
-        <height>41</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>18</pointsize>
-       </font>
-      </property>
-     </widget>
      <widget class="QPushButton" name="pushButton_equalize_home">
       <property name="geometry">
        <rect>
@@ -3273,42 +3237,6 @@
        <rect>
         <x>730</x>
         <y>330</y>
-        <width>171</width>
-        <height>41</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>18</pointsize>
-       </font>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_initialize_repeat">
-      <property name="geometry">
-       <rect>
-        <x>520</x>
-        <y>410</y>
-        <width>201</width>
-        <height>61</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>18</pointsize>
-       </font>
-      </property>
-      <property name="text">
-       <string>Repeat every (Days)</string>
-      </property>
-      <property name="wordWrap">
-       <bool>true</bool>
-      </property>
-     </widget>
-     <widget class="QSpinBox" name="spinBox_initialize_repeat">
-      <property name="geometry">
-       <rect>
-        <x>730</x>
-        <y>420</y>
         <width>171</width>
         <height>41</height>
        </rect>

@@ -1641,7 +1641,6 @@ void MainWindow::setupModePages()
     eq.currLim = ui->doubleSpinBox_equalize_curr_lim;
     eq.duration = ui->spinBox_equalize_duration;
     eq.overrideTime = ui->spinBox_equalize_overide_time;
-    eq.repeat = ui->spinBox_equalize_repeat;
     eq.status = ui->label_equalizecfg_status;
     eq.save = ui->pushButton_equalize_save;
     eq.getCommand = Rs485Client::GetEqualizeConfig;
@@ -1650,7 +1649,7 @@ void MainWindow::setupModePages()
     eq.offset[FieldEnabled] = 0;   eq.offset[FieldVolts] = 6;  eq.offset[FieldCurrLim] = 10;
     eq.offset[FieldDuration] = 2;  eq.offset[FieldOverride] = -1; eq.offset[FieldRepeat] = -1;
     eq.offset[FieldGassing] = -1;
-    eq.unsentNote = "Override timer and repeat are not sent to the SP515 yet.";
+    eq.unsentNote = "The override timer is not sent to the SP515 yet.";
 
     ModePage &init = modePages[ModeInitialize];
     init.page = ui->pageInitialize_settings;
@@ -1659,7 +1658,6 @@ void MainWindow::setupModePages()
     init.currLim = ui->doubleSpinBox_initialize_curr_lim;
     init.duration = ui->spinBox_initialize_duration;
     init.overrideTime = ui->spinBox_initialize_overide_time;
-    init.repeat = ui->spinBox_initialize_repeat;
     init.status = ui->label_initializecfg_status;
     init.save = ui->pushButton_initialize_save;
     init.getCommand = Rs485Client::GetInitializeConfig;
@@ -1668,7 +1666,7 @@ void MainWindow::setupModePages()
     init.offset[FieldEnabled] = 0;   init.offset[FieldVolts] = 5;  init.offset[FieldCurrLim] = 9;
     init.offset[FieldDuration] = 1;  init.offset[FieldOverride] = -1; init.offset[FieldRepeat] = -1;
     init.offset[FieldGassing] = -1;
-    init.unsentNote = "Override timer and repeat are not sent to the SP515 yet.";
+    init.unsentNote = "The override timer is not sent to the SP515 yet.";
 
     for (int kind = 0; kind < ModeCount; ++kind)
     {
@@ -1689,13 +1687,15 @@ void MainWindow::setupModePages()
         m.currLim->setSuffix(" %");
         m.duration->setRange(0, 2147483647);
         m.overrideTime->setRange(0, 1000000);
-        m.repeat->setRange(0, 49000);
+        if (m.repeat)                                   // Boost only
+            m.repeat->setRange(0, 49000);
 
         // Numeric keypad
         m.keypad = new NumericKeypad(m.page);
         m.keypad->setKeySize(84, 72);
         for (QSpinBox *spin : {m.duration, m.overrideTime, m.repeat})
-            m.keypad->registerEdit(spin);
+            if (spin)
+                m.keypad->registerEdit(spin);
         for (QDoubleSpinBox *spin : {m.volts, m.currLim, m.gassing})
         {
             if (!spin)
@@ -1715,7 +1715,8 @@ void MainWindow::setupModePages()
         connect(m.currLim, qOverload<double>(&QDoubleSpinBox::valueChanged), this, [this, kind](double) { modeFieldEdited(kind, FieldCurrLim); });
         connect(m.duration, qOverload<int>(&QSpinBox::valueChanged), this, [this, kind](int) { modeFieldEdited(kind, FieldDuration); });
         connect(m.overrideTime, qOverload<int>(&QSpinBox::valueChanged), this, [this, kind](int) { modeFieldEdited(kind, FieldOverride); });
-        connect(m.repeat, qOverload<int>(&QSpinBox::valueChanged), this, [this, kind](int) { modeFieldEdited(kind, FieldRepeat); });
+        if (m.repeat)
+            connect(m.repeat, qOverload<int>(&QSpinBox::valueChanged), this, [this, kind](int) { modeFieldEdited(kind, FieldRepeat); });
         if (m.gassing)
             connect(m.gassing, qOverload<double>(&QDoubleSpinBox::valueChanged), this, [this, kind](double) { modeFieldEdited(kind, FieldGassing); });
 
@@ -1754,7 +1755,8 @@ void MainWindow::enableModeFields(int kind)
     m.volts->setEnabled(on);
     m.duration->setEnabled(on);
     m.overrideTime->setEnabled(on);
-    m.repeat->setEnabled(on);
+    if (m.repeat)
+        m.repeat->setEnabled(on);
     if (m.gassing)
         m.gassing->setEnabled(on);
     m.currLim->setEnabled(on && m.batteryLoaded && m.capacityStrings > 0.0);
@@ -1824,7 +1826,7 @@ void MainWindow::handleModeReply(quint16 command, const QByteArray &payload)
         // Both reads are back: fill in the page
         if (m.configLoaded)
         {
-            const QSignalBlocker b2(m.volts), b3(m.currLim), b4(m.duration), b5(m.overrideTime), b6(m.repeat);
+            const QSignalBlocker b2(m.volts), b3(m.currLim), b4(m.duration), b5(m.overrideTime);
             const bool on = m.raw.at(m.offset[FieldEnabled]) != 0;
             m.loading = true;                       // the switch must keep its signals, or it does not slide
             m.toggle->setChecked(on);
@@ -1834,8 +1836,11 @@ void MainWindow::handleModeReply(quint16 command, const QByteArray &payload)
             m.duration->setValue(int(qMin<quint32>(u32At(m.raw, m.offset[FieldDuration]), 2147483647u)));
             if (m.offset[FieldOverride] >= 0)
                 m.overrideTime->setValue(qRound(double(u32At(m.raw, m.offset[FieldOverride])) / hourSeconds));
-            if (m.offset[FieldRepeat] >= 0)
+            if (m.repeat && m.offset[FieldRepeat] >= 0)
+            {
+                const QSignalBlocker b6(m.repeat);
                 m.repeat->setValue(qRound(double(u32At(m.raw, m.offset[FieldRepeat])) / daySeconds));
+            }
             if (m.gassing)
             {
                 const QSignalBlocker b7(m.gassing);
