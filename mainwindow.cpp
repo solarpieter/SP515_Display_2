@@ -67,6 +67,22 @@ static bool calculateNewGain(double currentGain, double offset, double reading, 
     return true;
 }
 
+namespace {
+
+// Name of a charge mode, from the mode number the SP515 reports in its status.
+// charge_mode_defines.h in the SP515 firmware is still empty, so the numbers have no names yet.
+// When it is defined, list the names here in the same order, for example { "FLOAT", "BOOST", "EQUALIZE", "INITIALIZE" }.
+// A number without a name is shown as "MODE n".
+QString chargeModeName(quint8 mode)
+{
+    static const QStringList names = {};
+    if (mode < names.size() && !names.at(mode).isEmpty())
+        return names.at(mode);
+    return QString("MODE %1").arg(mode);
+}
+
+} // namespace
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -79,8 +95,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->dateEdit->setDisplayFormat("dd/MM/yyyy");
     ui->timeEdit->setDisplayFormat("HH:mm:ss");
     ui->radioButtonDark->setChecked(true);
-    ui->btnChargerEnable->setChecked(false);            // the SP515 starts with the charger disabled
-    ui->btnChargerEnable->setText("CHARGER OFF");
+    setChargerUnknown();                                // the switch follows the SP515's own state, once it has been read
     clockTimer = new QTimer(this);      //Create timer
     // Show values immediately, then update every second
     updateClockLabels();
@@ -182,6 +197,7 @@ MainWindow::MainWindow(QWidget *parent)
                                       ui->label_batt_current_value_2,
                                       ui->label_batt_current_value_3,
                                       ui->label_batt_mode_value_4,
+                                      ui->label_batt_mode_value_2,
                                       ui->label_load_volt_value_2,
                                       ui->label_load_current_value_2,
                                       ui->label_rectifier_voltage_value,
@@ -194,6 +210,7 @@ MainWindow::MainWindow(QWidget *parent)
                     label->setText("--");
                 }
                 setSystemInfo("RECTIFIER --", nullptr, "No link to the daemon");
+                setChargerUnknown();
                 showAlarmState(false, false);
             });
 
@@ -205,6 +222,10 @@ MainWindow::MainWindow(QWidget *parent)
     // Dashboard, next to "System Status": is the rectifier really enabled (as reported by the SP515)
     connect(rs485, &Rs485Client::statusReceived, this, [this](const Status &st)
             {
+                statusFailures = 0;
+                showChargerFromSp515(st.enabled != 0);              // the SP515 decides, not the display
+                ui->label_batt_mode_value_2->setText(chargeModeName(st.mode));
+
                 const bool bad = st.configDefaulted != 0;
                 setSystemInfo(st.enabled ? "RECTIFIER ENABLED" : "RECTIFIER DISABLED",
                               st.enabled ? "#43a047" : "#fb8c00",
@@ -265,6 +286,9 @@ MainWindow::MainWindow(QWidget *parent)
                 {
                     const bool noAnswer = rs485->lastErrorStatus() == 3;
                     setSystemInfo("RECTIFIER --", nullptr, noAnswer ? "No answer from the SP515" : "No link to the daemon");
+                    ui->label_batt_mode_value_2->setText("--");
+                    if (++statusFailures >= 2)                      // one missed poll is not enough to grey out the switch
+                        setChargerUnknown();
                     return;
                 }
 
@@ -272,7 +296,7 @@ MainWindow::MainWindow(QWidget *parent)
                 {
                     // The SP515's answer to the ON / OFF request
                     chargerCommandPending = false;
-                    ui->btnChargerEnable->setEnabled(true);
+                    ui->btnChargerEnable->setEnabled(chargerStateKnown);
                     if (ok)
                         setChargerState(chargerPendingOn);          // confirmed: the switch moves
                     else
@@ -503,6 +527,29 @@ void MainWindow::requestChargerState(bool on)
     ui->btnChargerEnable->setEnabled(false);        // no second press while we wait for the answer
 
     rs485->setChargerSetpoint(on, on ? chargerOnVoltage : 0.0f, on ? chargerOnCurrentLimit : 0.0f);
+}
+
+// The SP515 reported its charger state (every second): the switch follows it, so it is always right
+// even after the display was restarted or changed. While an ON / OFF request is waiting for its answer
+// the switch is left alone; the answer decides.
+void MainWindow::showChargerFromSp515(bool enabled)
+{
+    chargerStateKnown = true;
+    if (chargerCommandPending)
+        return;
+    ui->btnChargerEnable->setEnabled(true);
+    setChargerState(enabled);
+}
+
+// No state from the SP515 (no link): grey the switch out instead of showing a guess
+void MainWindow::setChargerUnknown()
+{
+    chargerStateKnown = false;
+    if (chargerCommandPending)
+        return;
+    ui->btnChargerEnable->setEnabled(false);
+    ui->btnChargerEnable->setChecked(false);
+    ui->btnChargerEnable->setText("CHARGER --");
 }
 
 void MainWindow::setChargerState(bool on)

@@ -24,9 +24,9 @@ The app runs fullscreen with no title bar.
 
 | Page | What it does | Status |
 |---|---|---|
-| Dashboard | Live battery voltage, battery current, battery temperature, load voltage, load current, rectifier voltage, rectifier current and system alarms, plus date and time. Next to "System Status" a two-line block shows whether the SP515 reports the rectifier as enabled or disabled, and whether its stored configuration loaded (read once a second with command 0). Shows `--` when the daemon cannot be reached. | Working. The battery mode block still shows a fixed "EQUALIZE". |
+| Dashboard | Live battery voltage, battery current, battery temperature, load voltage, load current, rectifier voltage, rectifier current and system alarms, plus date and time. Next to "System Status" a two-line block shows whether the SP515 reports the rectifier as enabled or disabled, and whether its stored configuration loaded (read once a second with command 0). Shows `--` when the daemon cannot be reached. | Working. The battery mode block shows the charge mode the SP515 reports, as "MODE n" until the names are added (see `PROJECT_NOTES.md`). |
 | Menu | Buttons to the settings pages, HOME, BACK. | Charger Enable / Disable, Calibration, Battery Settings, Display Settings and Date / Time Settings are connected. The other buttons are placeholders. |
-| Charger Enable / Disable | A slide switch with a Yes / No question. The switch only moves after the SP515 has confirmed. Shows battery voltage, battery current, rectifier voltage, rectifier current and system alarms like the dashboard. | Working. Needs the charger voltage and current limit from the settings pages, see [Charger switch](#charger-switch). |
+| Charger Enable / Disable | A slide switch with a Yes / No question. The switch always shows the charger state the SP515 reports (read once a second), so it is right after a display restart or swap. It is greyed out with "CHARGER --" while the SP515 state is unknown. A press only moves it after the SP515 has confirmed. Shows battery voltage, battery current, rectifier voltage, rectifier current and system alarms like the dashboard. | Working. Needs the charger voltage and current limit from the settings pages, see [Charger switch](#charger-switch). |
 | Calibration | Pick a measurement, enter what a reference meter shows, then Calibrate (gain) or Apply Offset. A 3 second progress bar runs, then a green OK or red FAIL appears. | Working. Two assumptions need confirming, see `PROJECT_NOTES.md`. |
 | Display Settings | Theme (dark, light, high contrast), back light slider, "Dim after" and "Screen saver after" timers. | Working |
 | Date / Time Settings | Edit the date and time. SAVE updates the dashboard clock. | Changes the app's clock only, not the Pi's system clock. |
@@ -232,7 +232,9 @@ With the SP515 firmware as it stands, the enabled flag is only set together with
 setChargerSetpoint(voltage, currentLimit);     // public function on MainWindow
 ```
 
-Until that has been called, ON shows "The charger voltage and current limit have not been set yet." and sends nothing. OFF always sends 0 V and 0 A. The display starts with the switch OFF, because the SP515 starts with the charger disabled and its real state is not read back yet.
+Until that has been called, ON shows "The charger voltage and current limit have not been set yet." and sends nothing. OFF always sends 0 V and 0 A. Nothing in the display calls `setChargerSetpoint()` yet, so ON does not work yet: see `PROJECT_NOTES.md`.
+
+The switch does not keep its own state. Every second the display reads the SP515 status (command 0) and the switch follows its `enabled` flag, so the charger state is always the SP515's, whatever the display was doing before. While an ON or OFF request waits for its answer the switch is left alone. After two status requests in a row get no answer, or when the daemon cannot be reached, the switch is greyed out and shows "CHARGER --".
 
 ### Display-side client
 

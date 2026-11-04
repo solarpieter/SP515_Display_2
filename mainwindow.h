@@ -166,6 +166,10 @@ private:
     int pollCount = 0;
     void showAlarmState(bool haveData, bool active);
     void setChargerState(bool on);                  // switch the charger button (after the SP515 confirmed)
+    void showChargerFromSp515(bool enabled);        // the SP515 reported the charger state: the switch follows it
+    void setChargerUnknown();                       // no state from the SP515 (no link): the switch is greyed out
+    bool chargerStateKnown = false;
+    int statusFailures = 0;                         // status requests in a row that got no answer
     void requestChargerState(bool on);              // ask the SP515 to switch the charger (after the user said Yes)
     bool chargerCommandPending = false;
     bool chargerPendingOn = false;
