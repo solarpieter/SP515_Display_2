@@ -70,12 +70,18 @@ static bool calculateNewGain(double currentGain, double offset, double reading, 
 namespace {
 
 // Name of a charge mode, from the mode number the SP515 reports in its status.
-// charge_mode_defines.h in the SP515 firmware is still empty, so the numbers have no names yet.
-// When it is defined, list the names here in the same order, for example { "FLOAT", "BOOST", "EQUALIZE", "INITIALIZE" }.
+// The numbers are eChargeMode_t in the SP515 firmware (service_charge.h); keep this list in the same order.
 // A number without a name is shown as "MODE n".
 QString chargeModeName(quint8 mode)
 {
-    static const QStringList names = {};
+    static const QStringList names = {
+        "NONE",         // CHARGE_MODE_NONE = 0
+        "FLOAT",        // CHARGE_MODE_FLOAT
+        "BOOST",        // CHARGE_MODE_BOOST
+        "EQUALIZE",     // CHARGE_MODE_EQUALIZE
+        "INITIALIZE",   // CHARGE_MODE_INITIALIZE
+        "BATT TEST",    // CHARGE_MODE_BTEST
+    };
     if (mode < names.size() && !names.at(mode).isEmpty())
         return names.at(mode);
     return QString("MODE %1").arg(mode);
