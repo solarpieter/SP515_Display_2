@@ -284,6 +284,8 @@ MainWindow::MainWindow(QWidget *parent)
             });
     connect(rs485, &Rs485Client::commandFinished, this, [this](quint16 command, bool ok, const QString &message)
             {
+                if (handleModeCommandFinished(command, ok, message))
+                    return;                                 // a boost, equalize or initialize page read or save
                 if (handleBatteryCommandFinished(command, ok, message))
                     return;                                 // a battery settings read or save
                 if (handlePidCommandFinished(command, ok, message))
@@ -327,6 +329,7 @@ MainWindow::MainWindow(QWidget *parent)
     setupDisplayPage();
     setupBatteryPage();
     setupPidPage();
+    setupModePages();
 
     pollTimer = new QTimer(this);
     connect(pollTimer, &QTimer::timeout, this, [this]()
@@ -1584,3 +1587,391 @@ void MainWindow::on_pushButton_8_clicked()
     ui->stackedWidget->setCurrentWidget(ui->pageBoost_settings);
 }
 
+
+// ---- Boost, Equalize and Initialize pages ----------------------------------
+
+namespace {
+
+quint32 u32At(const QByteArray &bytes, int offset)
+{
+    quint32 raw;
+    std::memcpy(&raw, bytes.constData() + offset, sizeof(raw));
+    return qFromLittleEndian(raw);
+}
+
+void putU32(QByteArray &bytes, int offset, quint32 value)
+{
+    value = qToLittleEndian(value);
+    std::memcpy(bytes.data() + offset, &value, sizeof(value));
+}
+
+const int hourSeconds = 3600;
+const int daySeconds = 86400;
+const int modeSetTimeoutMs = 7000;          // a config SET can take the daemon up to 5 s
+
+// The battery config (command 14): U8 type, U8 cells per string, U8 strings, float capacity
+const int batteryConfigSize = 7;
+
+} // namespace
+
+void MainWindow::setupModePages()
+{
+    ModePage &boost = modePages[ModeBoost];
+    boost.page = ui->pageBoost_settings;
+    boost.toggle = ui->toggle_boost_enable;
+    boost.volts = ui->doubleSpinBox_boost_volt_cell;
+    boost.currLim = ui->doubleSpinBox_boost_curr_lim;
+    boost.gassing = ui->doubleSpinBox_gassing_volt;
+    boost.duration = ui->spinBox_boost_duration;
+    boost.overrideTime = ui->spinBox_boost_overide_time;
+    boost.repeat = ui->spinBox_boost_repeat;
+    boost.status = ui->label_boostcfg_status;
+    boost.save = ui->pushButton_boost_save;
+    boost.getCommand = Rs485Client::GetBoostConfig;
+    boost.setCommand = Rs485Client::SetBoostConfig;
+    boost.size = 26;                // bool, bool, U32 cycle, U32 duration, U32 override, float V/cell, float current limit, float gassing
+    boost.offset[FieldEnabled] = 0;   boost.offset[FieldVolts] = 14;  boost.offset[FieldCurrLim] = 18;
+    boost.offset[FieldDuration] = 6;  boost.offset[FieldOverride] = 10; boost.offset[FieldRepeat] = 2;
+    boost.offset[FieldGassing] = 22;
+
+    ModePage &eq = modePages[ModeEqualize];
+    eq.page = ui->pageEqualize_settings;
+    eq.toggle = ui->toggle_equalize_enable;
+    eq.volts = ui->doubleSpinBox_equalize_volt_cell;
+    eq.currLim = ui->doubleSpinBox_equalize_curr_lim;
+    eq.duration = ui->spinBox_equalize_duration;
+    eq.overrideTime = ui->spinBox_equalize_overide_time;
+    eq.repeat = ui->spinBox_equalize_repeat;
+    eq.status = ui->label_equalizecfg_status;
+    eq.save = ui->pushButton_equalize_save;
+    eq.getCommand = Rs485Client::GetEqualizeConfig;
+    eq.setCommand = Rs485Client::SetEqualizeConfig;
+    eq.size = 14;                   // bool, bool, U32 duration, float V/cell, float current limit
+    eq.offset[FieldEnabled] = 0;   eq.offset[FieldVolts] = 6;  eq.offset[FieldCurrLim] = 10;
+    eq.offset[FieldDuration] = 2;  eq.offset[FieldOverride] = -1; eq.offset[FieldRepeat] = -1;
+    eq.offset[FieldGassing] = -1;
+    eq.unsentNote = "Override timer and repeat are not sent to the SP515 yet.";
+
+    ModePage &init = modePages[ModeInitialize];
+    init.page = ui->pageInitialize_settings;
+    init.toggle = ui->toggle_initialize_enable;
+    init.volts = ui->doubleSpinBox_initialize_volt_cell;
+    init.currLim = ui->doubleSpinBox_initialize_curr_lim;
+    init.duration = ui->spinBox_initialize_duration;
+    init.overrideTime = ui->spinBox_initialize_overide_time;
+    init.repeat = ui->spinBox_initialize_repeat;
+    init.status = ui->label_initializecfg_status;
+    init.save = ui->pushButton_initialize_save;
+    init.getCommand = Rs485Client::GetInitializeConfig;
+    init.setCommand = Rs485Client::SetInitializeConfig;
+    init.size = 13;                 // bool, U32 duration, float V/cell, float current limit
+    init.offset[FieldEnabled] = 0;   init.offset[FieldVolts] = 5;  init.offset[FieldCurrLim] = 9;
+    init.offset[FieldDuration] = 1;  init.offset[FieldOverride] = -1; init.offset[FieldRepeat] = -1;
+    init.offset[FieldGassing] = -1;
+    init.unsentNote = "Override timer and repeat are not sent to the SP515 yet.";
+
+    for (int kind = 0; kind < ModeCount; ++kind)
+    {
+        ModePage &m = modePages[kind];
+        m.status->clear();
+
+        // Value ranges. Three decimals on the voltages: with two, 2.275 V would be shown (and saved) as 2.28 V
+        for (QDoubleSpinBox *spin : {m.volts, m.gassing})
+        {
+            if (!spin)
+                continue;
+            spin->setDecimals(3);
+            spin->setSingleStep(0.005);
+            spin->setRange(0.0, 99.999);
+        }
+        m.currLim->setDecimals(1);
+        m.currLim->setRange(0.0, 1000.0);
+        m.currLim->setSuffix(" %");
+        m.duration->setRange(0, 2147483647);
+        m.overrideTime->setRange(0, 1000000);
+        m.repeat->setRange(0, 49000);
+
+        // Numeric keypad
+        m.keypad = new NumericKeypad(m.page);
+        m.keypad->setKeySize(84, 72);
+        for (QSpinBox *spin : {m.duration, m.overrideTime, m.repeat})
+            m.keypad->registerEdit(spin);
+        for (QDoubleSpinBox *spin : {m.volts, m.currLim, m.gassing})
+        {
+            if (!spin)
+                continue;
+            spin->setLocale(QLocale::c());              // always use "." as the decimal point
+            m.keypad->registerEdit(spin);
+        }
+
+        // Remember what was edited
+        connect(m.toggle, &QPushButton::toggled, this, [this, kind](bool on)
+                {
+                    modePages[kind].toggle->setText(on ? "ENABLED" : "DISABLED");
+                    if (!modePages[kind].loading)
+                        modeFieldEdited(kind, FieldEnabled);
+                });
+        connect(m.volts, qOverload<double>(&QDoubleSpinBox::valueChanged), this, [this, kind](double) { modeFieldEdited(kind, FieldVolts); });
+        connect(m.currLim, qOverload<double>(&QDoubleSpinBox::valueChanged), this, [this, kind](double) { modeFieldEdited(kind, FieldCurrLim); });
+        connect(m.duration, qOverload<int>(&QSpinBox::valueChanged), this, [this, kind](int) { modeFieldEdited(kind, FieldDuration); });
+        connect(m.overrideTime, qOverload<int>(&QSpinBox::valueChanged), this, [this, kind](int) { modeFieldEdited(kind, FieldOverride); });
+        connect(m.repeat, qOverload<int>(&QSpinBox::valueChanged), this, [this, kind](int) { modeFieldEdited(kind, FieldRepeat); });
+        if (m.gassing)
+            connect(m.gassing, qOverload<double>(&QDoubleSpinBox::valueChanged), this, [this, kind](double) { modeFieldEdited(kind, FieldGassing); });
+
+        connect(m.save, &QPushButton::clicked, this, [this, kind]() { saveModePage(kind); });
+        enableModeFields(kind);                         // all off until the config has been read
+    }
+
+    // Home and Back buttons of the three pages. Back goes to Battery Settings, where the three pages are opened from.
+    connect(ui->pushButton_boost_home, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageDashboard); });
+    connect(ui->pushButton_boost_back, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageBattery_settings); });
+    connect(ui->pushButton_equalize_home, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageDashboard); });
+    connect(ui->pushButton_equalize_back, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageBattery_settings); });
+    connect(ui->pushButton_initialize_home, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageDashboard); });
+    connect(ui->pushButton_initialize_back, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageBattery_settings); });
+
+    // The buttons on Battery Settings (the Boost one is on_pushButton_8_clicked)
+    connect(ui->pushButton_9, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageEqualize_settings); });
+    connect(ui->pushButton_10, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageInitialize_settings); });
+
+    // Read the config every time one of the pages opens
+    connect(ui->stackedWidget, &QStackedWidget::currentChanged, this, [this](int)
+            {
+                for (int kind = 0; kind < ModeCount; ++kind)
+                    if (ui->stackedWidget->currentWidget() == modePages[kind].page)
+                        loadModePage(kind);
+            });
+    connect(rs485, &Rs485Client::replyReceived, this, &MainWindow::handleModeReply);
+}
+
+// Fields are enabled once the config has been read; the current limit also needs the battery config
+void MainWindow::enableModeFields(int kind)
+{
+    ModePage &m = modePages[kind];
+    const bool on = m.configLoaded;
+    m.toggle->setEnabled(on);
+    m.volts->setEnabled(on);
+    m.duration->setEnabled(on);
+    m.overrideTime->setEnabled(on);
+    m.repeat->setEnabled(on);
+    if (m.gassing)
+        m.gassing->setEnabled(on);
+    m.currLim->setEnabled(on && m.batteryLoaded && m.capacityStrings > 0.0);
+}
+
+void MainWindow::setModeStatus(int kind, const QString &text, int level)
+{
+    const char *color = level == 1 ? "#43a047" : (level == 2 ? "#e53935" : (level == 3 ? "#fb8c00" : ""));
+    ModePage &m = modePages[kind];
+    m.status->setStyleSheet(*color ? QString("color: %1;").arg(color) : QString());
+    m.status->setText(text);
+}
+
+void MainWindow::loadModePage(int kind)
+{
+    ModePage &m = modePages[kind];
+    if (m.awaitConfig || m.awaitBattery || m.setPending)
+        return;
+
+    m.configLoaded = false;
+    m.batteryLoaded = false;
+    m.capacityStrings = 0;
+    m.raw.clear();
+    m.unsentEdited = false;
+    for (bool &d : m.dirty)
+        d = false;
+    enableModeFields(kind);
+    setModeStatus(kind, "Reading from the SP515...", 0);
+    m.awaitConfig = m.awaitBattery = true;
+    rs485->sendCommand(m.getCommand);
+    rs485->sendCommand(Rs485Client::GetBatteryConfig);
+}
+
+void MainWindow::handleModeReply(quint16 command, const QByteArray &payload)
+{
+    for (int kind = 0; kind < ModeCount; ++kind)
+    {
+        ModePage &m = modePages[kind];
+
+        if (command == Rs485Client::GetBatteryConfig && m.awaitBattery)
+        {
+            m.awaitBattery = false;
+            if (payload.size() == batteryConfigSize)
+            {
+                const double strings = quint8(payload.at(2));
+                m.capacityStrings = double(floatAt(payload, 3)) * strings;
+                m.batteryLoaded = true;
+            }
+        }
+        else if (command == m.getCommand && m.awaitConfig)
+        {
+            m.awaitConfig = false;
+            if (payload.size() != m.size)
+            {
+                setModeStatus(kind, QString("Unexpected reply length: %1 bytes").arg(payload.size()), 2);
+                continue;
+            }
+            m.raw = payload;
+            m.configLoaded = true;
+        }
+        else
+            continue;
+
+        if (m.awaitConfig || m.awaitBattery)
+            continue;                               // wait for the other read
+
+        // Both reads are back: fill in the page
+        if (m.configLoaded)
+        {
+            const QSignalBlocker b2(m.volts), b3(m.currLim), b4(m.duration), b5(m.overrideTime), b6(m.repeat);
+            const bool on = m.raw.at(m.offset[FieldEnabled]) != 0;
+            m.loading = true;                       // the switch must keep its signals, or it does not slide
+            m.toggle->setChecked(on);
+            m.loading = false;
+            m.toggle->setText(on ? "ENABLED" : "DISABLED");
+            m.volts->setValue(double(floatAt(m.raw, m.offset[FieldVolts])));
+            m.duration->setValue(int(qMin<quint32>(u32At(m.raw, m.offset[FieldDuration]), 2147483647u)));
+            if (m.offset[FieldOverride] >= 0)
+                m.overrideTime->setValue(qRound(double(u32At(m.raw, m.offset[FieldOverride])) / hourSeconds));
+            if (m.offset[FieldRepeat] >= 0)
+                m.repeat->setValue(qRound(double(u32At(m.raw, m.offset[FieldRepeat])) / daySeconds));
+            if (m.gassing)
+            {
+                const QSignalBlocker b7(m.gassing);
+                m.gassing->setValue(double(floatAt(m.raw, m.offset[FieldGassing])));
+            }
+            if (m.batteryLoaded && m.capacityStrings > 0.0)
+                m.currLim->setValue(double(floatAt(m.raw, m.offset[FieldCurrLim])) / (m.capacityStrings / 100.0));
+            else
+                m.currLim->setValue(0.0);
+        }
+        enableModeFields(kind);
+
+        if (!m.configLoaded)
+            continue;                               // the failure message is already shown
+        if (!m.batteryLoaded || m.capacityStrings <= 0.0)
+            setModeStatus(kind, "The current limit in % needs the battery capacity and strings from the SP515.", 3);
+        else
+            setModeStatus(kind, "Values read from the SP515.", 0);
+    }
+}
+
+// Result of a read (failures only) or a save of one of the three pages. Returns true when the command was one of ours.
+bool MainWindow::handleModeCommandFinished(quint16 command, bool ok, const QString &message)
+{
+    bool handled = false;
+    for (int kind = 0; kind < ModeCount; ++kind)
+    {
+        ModePage &m = modePages[kind];
+        const quint8 status = rs485->lastErrorStatus();
+        const QString reason = status == 3 ? (command == m.setCommand ? QString("Not accepted by the SP515") : QString("No answer from the SP515"))
+                             : (status == 0 ? QString("No answer from the daemon") : message);
+
+        if (command == m.getCommand && m.awaitConfig)
+        {
+            handled = true;
+            if (!ok)
+            {
+                m.awaitConfig = false;
+                setModeStatus(kind, reason, 2);
+                enableModeFields(kind);
+            }
+        }
+        else if (command == Rs485Client::GetBatteryConfig && m.awaitBattery)
+        {
+            handled = true;
+            if (!ok)
+            {
+                m.awaitBattery = false;
+                m.batteryLoaded = false;
+                if (!m.awaitConfig && m.configLoaded)        // the config arrived first: finish now
+                {
+                    enableModeFields(kind);
+                    setModeStatus(kind, "The current limit in % needs the battery capacity and strings from the SP515.", 3);
+                }
+            }
+        }
+        else if (command == m.setCommand && m.setPending)
+        {
+            handled = true;
+            m.setPending = false;
+            if (ok)
+            {
+                m.raw = m.sent;
+                for (bool &d : m.dirty)
+                    d = false;
+                if (m.unsentEdited)
+                    setModeStatus(kind, QString("Saved. ") + m.unsentNote, 3);
+                else
+                    setModeStatus(kind, "Saved.", 1);
+            }
+            else
+                setModeStatus(kind, reason, 2);
+            m.save->setEnabled(true);
+        }
+    }
+    return handled;
+}
+
+void MainWindow::modeFieldEdited(int kind, int field)
+{
+    ModePage &m = modePages[kind];
+    if (m.offset[field] < 0)
+    {
+        m.unsentEdited = true;
+        setModeStatus(kind, m.unsentNote, 3);
+        return;
+    }
+    m.dirty[field] = true;
+    if (!m.setPending)
+        setModeStatus(kind, m.unsentEdited ? m.unsentNote : QString(), m.unsentEdited ? 3 : 0);
+}
+
+void MainWindow::saveModePage(int kind)
+{
+    ModePage &m = modePages[kind];
+    if (m.awaitConfig || m.awaitBattery || m.setPending)
+        return;
+    if (!m.configLoaded)
+    {
+        setModeStatus(kind, "The values have not been read from the SP515.", 2);
+        return;
+    }
+
+    // Start from the config as the SP515 reported it and replace only the fields that were edited, so
+    // everything else (and any value shown rounded) is written back exactly as it was.
+    QByteArray payload = m.raw;
+    bool any = false;
+    for (int field = 0; field < FieldCount; ++field)
+    {
+        if (!m.dirty[field] || m.offset[field] < 0)
+            continue;
+        any = true;
+        const int at = m.offset[field];
+        switch (field)
+        {
+        case FieldEnabled:  payload[at] = m.toggle->isChecked() ? 1 : 0; break;
+        case FieldVolts:    putFloat(payload, at, float(m.volts->value())); break;
+        case FieldGassing:  putFloat(payload, at, float(m.gassing->value())); break;
+        case FieldCurrLim:  putFloat(payload, at, float(m.currLim->value() * (m.capacityStrings / 100.0))); break;
+        case FieldDuration: putU32(payload, at, quint32(m.duration->value())); break;
+        case FieldOverride: putU32(payload, at, quint32(qint64(m.overrideTime->value()) * hourSeconds)); break;
+        case FieldRepeat:   putU32(payload, at, quint32(qint64(m.repeat->value()) * daySeconds)); break;
+        }
+    }
+    if (!any)
+    {
+        if (m.unsentEdited)
+            setModeStatus(kind, m.unsentNote, 3);
+        else
+            setModeStatus(kind, "No changes to save.", 0);
+        return;
+    }
+
+    m.sent = payload;
+    m.setPending = true;
+    m.save->setEnabled(false);
+    setModeStatus(kind, "Saving...", 0);
+    rs485->sendCommand(m.setCommand, payload, modeSetTimeoutMs);
+}

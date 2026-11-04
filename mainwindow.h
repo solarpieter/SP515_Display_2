@@ -7,6 +7,8 @@
 #include <QElapsedTimer>
 #include <QLabel>
 #include <QProgressBar>
+#include <QPushButton>
+#include <QSpinBox>
 #include <QPropertyAnimation>
 #include <QMainWindow>
 #include <QTimer>
@@ -229,6 +231,44 @@ private:
     bool handlePidCommandFinished(quint16 command, bool ok, const QString &message);
     void setPidStatus(const QString &text, int kind);      // kind: 0 neutral, 1 good, 2 error
     QDoubleSpinBox *pidSpin(int index) const;
+
+    // Boost, Equalize and Initialize settings pages: one shared implementation. Each reads its config
+    // (and the battery config, for the current limit in %) when the page opens and sends only the
+    // edited fields back with SAVE. A field the SP515 config does not have yet (offset -1) can be
+    // edited, but is not sent, and the page says so.
+    enum ModeKind { ModeBoost, ModeEqualize, ModeInitialize, ModeCount };
+    enum ModeField { FieldEnabled, FieldVolts, FieldCurrLim, FieldDuration, FieldOverride, FieldRepeat, FieldGassing, FieldCount };
+    struct ModePage
+    {
+        QWidget *page = nullptr;
+        QPushButton *toggle = nullptr;                              // the Function switch (a ToggleSwitch)
+        QDoubleSpinBox *volts = nullptr, *currLim = nullptr, *gassing = nullptr;
+        QSpinBox *duration = nullptr, *overrideTime = nullptr, *repeat = nullptr;
+        QLabel *status = nullptr;
+        QPushButton *save = nullptr;
+        NumericKeypad *keypad = nullptr;
+        quint16 getCommand = 0, setCommand = 0;
+        int size = 0;                                               // config size in bytes
+        int offset[FieldCount] = {};                                // where each field sits in the config; -1: not in the SP515 config
+        QByteArray raw, sent;                                       // the config as last read from (or saved to) the SP515
+        bool awaitConfig = false, awaitBattery = false;             // reads waiting for an answer
+        bool configLoaded = false, batteryLoaded = false;
+        double capacityStrings = 0;                                 // capacity x strings, from the battery config
+        bool dirty[FieldCount] = {};
+        bool setPending = false;
+        bool loading = false;                                       // filling in values from the SP515: not edits
+        bool unsentEdited = false;                                  // a field that is not sent was edited
+        QString unsentNote;
+    };
+    ModePage modePages[ModeCount];
+    void setupModePages();
+    void loadModePage(int kind);
+    void saveModePage(int kind);
+    void modeFieldEdited(int kind, int field);
+    void handleModeReply(quint16 command, const QByteArray &payload);
+    bool handleModeCommandFinished(quint16 command, bool ok, const QString &message);
+    void setModeStatus(int kind, const QString &text, int level);   // level: 0 neutral, 1 good, 2 error, 3 warning
+    void enableModeFields(int kind);
 
     QDateTime appNow() const;       // system time plus the saved offset
     void updateClockLabels();       // dashboard date and time
