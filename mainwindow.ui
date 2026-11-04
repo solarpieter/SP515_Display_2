@@ -75,7 +75,7 @@
      <number>0</number>
     </property>
     <property name="currentIndex">
-     <number>10</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="pageDashboard">
      <property name="minimumSize">
@@ -208,7 +208,7 @@
            <rect>
             <x>20</x>
             <y>10</y>
-            <width>231</width>
+            <width>261</width>
             <height>41</height>
            </rect>
           </property>
@@ -233,7 +233,7 @@
            <rect>
             <x>10</x>
             <y>60</y>
-            <width>181</width>
+            <width>291</width>
             <height>51</height>
            </rect>
           </property>
@@ -299,7 +299,7 @@
            <rect>
             <x>10</x>
             <y>60</y>
-            <width>181</width>
+            <width>291</width>
             <height>51</height>
            </rect>
           </property>
@@ -355,9 +355,9 @@
           <property name="geometry">
            <rect>
             <x>10</x>
-            <y>50</y>
+            <y>60</y>
             <width>291</width>
-            <height>61</height>
+            <height>51</height>
            </rect>
           </property>
           <property name="font">
@@ -413,7 +413,7 @@
            <rect>
             <x>10</x>
             <y>60</y>
-            <width>181</width>
+            <width>291</width>
             <height>51</height>
            </rect>
           </property>
@@ -460,7 +460,7 @@
            <rect>
             <x>20</x>
             <y>10</y>
-            <width>201</width>
+            <width>251</width>
             <height>41</height>
            </rect>
           </property>
@@ -482,7 +482,7 @@
            <rect>
             <x>10</x>
             <y>60</y>
-            <width>181</width>
+            <width>291</width>
             <height>51</height>
            </rect>
           </property>
@@ -537,9 +537,9 @@
          <widget class="QLabel" name="label_load_current_value_2">
           <property name="geometry">
            <rect>
-            <x>20</x>
+            <x>10</x>
             <y>60</y>
-            <width>181</width>
+            <width>291</width>
             <height>51</height>
            </rect>
           </property>
@@ -595,9 +595,9 @@
           <property name="geometry">
            <rect>
             <x>10</x>
-            <y>50</y>
+            <y>60</y>
             <width>291</width>
-            <height>61</height>
+            <height>51</height>
            </rect>
           </property>
           <property name="font">
@@ -651,6 +651,50 @@
          <property name="lineWidth">
           <number>2</number>
          </property>
+         <widget class="QLabel" name="label_rectifier_voltage">
+          <property name="geometry">
+           <rect>
+            <x>20</x>
+            <y>10</y>
+            <width>271</width>
+            <height>41</height>
+           </rect>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>18</pointsize>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>RECTIFIER VOLTAGE</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignmentFlag::AlignJustify|Qt::AlignmentFlag::AlignVCenter</set>
+          </property>
+         </widget>
+         <widget class="QLabel" name="label_4_rect_volt_value">
+          <property name="geometry">
+           <rect>
+            <x>10</x>
+            <y>60</y>
+            <width>291</width>
+            <height>51</height>
+           </rect>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>30</pointsize>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>TextLabel</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignmentFlag::AlignCenter</set>
+          </property>
+         </widget>
         </widget>
        </item>
        <item>
@@ -664,6 +708,50 @@
          <property name="lineWidth">
           <number>2</number>
          </property>
+         <widget class="QLabel" name="label_rect_curr_value">
+          <property name="geometry">
+           <rect>
+            <x>10</x>
+            <y>60</y>
+            <width>291</width>
+            <height>51</height>
+           </rect>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>30</pointsize>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>TextLabel</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignmentFlag::AlignCenter</set>
+          </property>
+         </widget>
+         <widget class="QLabel" name="label_rectifier_current_2">
+          <property name="geometry">
+           <rect>
+            <x>20</x>
+            <y>10</y>
+            <width>271</width>
+            <height>41</height>
+           </rect>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>18</pointsize>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>RECTIFIER CURRENT</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignmentFlag::AlignJustify|Qt::AlignmentFlag::AlignVCenter</set>
+          </property>
+         </widget>
         </widget>
        </item>
        <item>
@@ -2697,7 +2785,7 @@
         <second>0</second>
         <year>2026</year>
         <month>1</month>
-        <day>22</day>
+        <day>20</day>
        </datetime>
       </property>
       <property name="displayFormat">
@@ -3103,6 +3191,144 @@
        </property>
       </widget>
      </widget>
+     <widget class="QFrame" name="frame_battery_current_3">
+      <property name="geometry">
+       <rect>
+        <x>390</x>
+        <y>370</y>
+        <width>311</width>
+        <height>119</height>
+       </rect>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::Shape::Box</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Shadow::Raised</enum>
+      </property>
+      <property name="lineWidth">
+       <number>2</number>
+      </property>
+      <widget class="QLabel" name="label_rectifier_current_4">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>10</y>
+         <width>251</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>18</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>RECTIFIER CURRENT</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_rect_current_value_4">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>60</y>
+         <width>181</width>
+         <height>51</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>30</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>21.5 A</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignCenter</set>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QFrame" name="frame_battery_voltage_3">
+      <property name="geometry">
+       <rect>
+        <x>60</x>
+        <y>370</y>
+        <width>310</width>
+        <height>119</height>
+       </rect>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::Shape::Box</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Shadow::Raised</enum>
+      </property>
+      <property name="lineWidth">
+       <number>2</number>
+      </property>
+      <widget class="QLabel" name="label_rectifier_voltage_4">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>10</y>
+         <width>241</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>18</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="lineWidth">
+        <number>0</number>
+       </property>
+       <property name="text">
+        <string>RECIFIER VOLTAGE</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_rect_volt_value_4">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>60</y>
+         <width>181</width>
+         <height>51</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>30</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::Shape::NoFrame</enum>
+       </property>
+       <property name="frameShadow">
+        <enum>QFrame::Shadow::Plain</enum>
+       </property>
+       <property name="lineWidth">
+        <number>0</number>
+       </property>
+       <property name="text">
+        <string>121.2 V</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignCenter</set>
+       </property>
+      </widget>
+     </widget>
     </widget>
     <widget class="QWidget" name="pageCharger_settings">
      <widget class="QPushButton" name="pushButton_chgset_pid">
@@ -3261,7 +3487,7 @@
      <widget class="QLabel" name="label_voltage_kp">
       <property name="geometry">
        <rect>
-        <x>110</x>
+        <x>30</x>
         <y>20</y>
         <width>221</width>
         <height>49</height>
@@ -3279,7 +3505,7 @@
      <widget class="QLabel" name="label_voltage_ki">
       <property name="geometry">
        <rect>
-        <x>110</x>
+        <x>30</x>
         <y>120</y>
         <width>221</width>
         <height>49</height>
@@ -3297,7 +3523,7 @@
      <widget class="QLabel" name="label_current_kp">
       <property name="geometry">
        <rect>
-        <x>110</x>
+        <x>30</x>
         <y>220</y>
         <width>221</width>
         <height>49</height>
@@ -3315,7 +3541,7 @@
      <widget class="QLabel" name="label_current_ki">
       <property name="geometry">
        <rect>
-        <x>110</x>
+        <x>30</x>
         <y>320</y>
         <width>221</width>
         <height>49</height>
@@ -3333,9 +3559,9 @@
      <widget class="QDoubleSpinBox" name="doubleSpinBox_voltagekp">
       <property name="geometry">
        <rect>
-        <x>350</x>
+        <x>260</x>
         <y>20</y>
-        <width>170</width>
+        <width>300</width>
         <height>49</height>
        </rect>
       </property>
@@ -3348,9 +3574,9 @@
      <widget class="QDoubleSpinBox" name="doubleSpinBox_voltageki">
       <property name="geometry">
        <rect>
-        <x>350</x>
+        <x>260</x>
         <y>120</y>
-        <width>170</width>
+        <width>300</width>
         <height>49</height>
        </rect>
       </property>
@@ -3363,9 +3589,9 @@
      <widget class="QDoubleSpinBox" name="doubleSpinBox_currentkp">
       <property name="geometry">
        <rect>
-        <x>350</x>
+        <x>260</x>
         <y>220</y>
-        <width>170</width>
+        <width>300</width>
         <height>49</height>
        </rect>
       </property>
@@ -3378,9 +3604,9 @@
      <widget class="QDoubleSpinBox" name="doubleSpinBox_currentki">
       <property name="geometry">
        <rect>
-        <x>350</x>
+        <x>260</x>
         <y>320</y>
-        <width>170</width>
+        <width>300</width>
         <height>49</height>
        </rect>
       </property>
@@ -3393,7 +3619,7 @@
      <widget class="QLabel" name="label_rectifier_voltage4">
       <property name="geometry">
        <rect>
-        <x>600</x>
+        <x>680</x>
         <y>70</y>
         <width>301</width>
         <height>49</height>
@@ -3411,7 +3637,7 @@
      <widget class="QLabel" name="label_rectifier_voltage_value">
       <property name="geometry">
        <rect>
-        <x>940</x>
+        <x>1000</x>
         <y>70</y>
         <width>250</width>
         <height>49</height>
@@ -3429,7 +3655,7 @@
      <widget class="QLabel" name="label_rectifier_current6">
       <property name="geometry">
        <rect>
-        <x>600</x>
+        <x>680</x>
         <y>280</y>
         <width>301</width>
         <height>49</height>
@@ -3447,7 +3673,7 @@
      <widget class="QLabel" name="label_rectifier_current_value">
       <property name="geometry">
        <rect>
-        <x>940</x>
+        <x>1000</x>
         <y>280</y>
         <width>250</width>
         <height>49</height>
