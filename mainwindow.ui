@@ -1775,14 +1775,14 @@
       <property name="geometry">
        <rect>
         <x>240</x>
-        <y>20</y>
-        <width>251</width>
-        <height>39</height>
+        <y>12</y>
+        <width>300</width>
+        <height>56</height>
        </rect>
       </property>
       <property name="font">
        <font>
-        <pointsize>20</pointsize>
+        <pointsize>22</pointsize>
        </font>
       </property>
       <item>
@@ -2751,26 +2751,23 @@
        <string>Boost Function</string>
       </property>
      </widget>
-     <widget class="ToggleSwitch" name="toggle_boost_enable">
+     <widget class="QCheckBox" name="checkBox_boost_enable">
       <property name="geometry">
        <rect>
-        <x>220</x>
-        <y>70</y>
-        <width>241</width>
-        <height>141</height>
+        <x>230</x>
+        <y>115</y>
+        <width>300</width>
+        <height>50</height>
        </rect>
       </property>
       <property name="font">
        <font>
-        <pointsize>26</pointsize>
+        <pointsize>20</pointsize>
         <bold>true</bold>
        </font>
       </property>
       <property name="text">
-       <string/>
-      </property>
-      <property name="checkable">
-       <bool>true</bool>
+       <string>Disabled</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_boostcfg_status">
@@ -3045,26 +3042,23 @@
        <bool>true</bool>
       </property>
      </widget>
-     <widget class="ToggleSwitch" name="toggle_equalize_enable">
+     <widget class="QCheckBox" name="checkBox_equalize_enable">
       <property name="geometry">
        <rect>
-        <x>220</x>
-        <y>70</y>
-        <width>241</width>
-        <height>141</height>
+        <x>230</x>
+        <y>115</y>
+        <width>300</width>
+        <height>50</height>
        </rect>
       </property>
       <property name="font">
        <font>
-        <pointsize>26</pointsize>
+        <pointsize>20</pointsize>
         <bold>true</bold>
        </font>
       </property>
       <property name="text">
-       <string/>
-      </property>
-      <property name="checkable">
-       <bool>true</bool>
+       <string>Disabled</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_equalizecfg_status">
@@ -3339,26 +3333,23 @@
        <bool>true</bool>
       </property>
      </widget>
-     <widget class="ToggleSwitch" name="toggle_initialize_enable">
+     <widget class="QCheckBox" name="checkBox_initialize_enable">
       <property name="geometry">
        <rect>
-        <x>220</x>
-        <y>70</y>
-        <width>241</width>
-        <height>141</height>
+        <x>230</x>
+        <y>115</y>
+        <width>300</width>
+        <height>50</height>
        </rect>
       </property>
       <property name="font">
        <font>
-        <pointsize>26</pointsize>
+        <pointsize>20</pointsize>
         <bold>true</bold>
        </font>
       </property>
       <property name="text">
-       <string/>
-      </property>
-      <property name="checkable">
-       <bool>true</bool>
+       <string>Disabled</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_initializecfg_status">

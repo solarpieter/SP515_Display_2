@@ -331,6 +331,13 @@ MainWindow::MainWindow(QWidget *parent)
     setupPidPage();
     setupModePages();
 
+    // Numbers are typed on the numeric keypad; the small up / down arrows on the spin boxes are too small to use.
+    // (Date and time boxes keep theirs: they step through day, month, hour and so on.)
+    for (QSpinBox *spin : findChildren<QSpinBox *>())
+        spin->setButtonSymbols(QAbstractSpinBox::NoButtons);
+    for (QDoubleSpinBox *spin : findChildren<QDoubleSpinBox *>())
+        spin->setButtonSymbols(QAbstractSpinBox::NoButtons);
+
     pollTimer = new QTimer(this);
     connect(pollTimer, &QTimer::timeout, this, [this]()
             {
@@ -1618,7 +1625,7 @@ void MainWindow::setupModePages()
 {
     ModePage &boost = modePages[ModeBoost];
     boost.page = ui->pageBoost_settings;
-    boost.toggle = ui->toggle_boost_enable;
+    boost.toggle = ui->checkBox_boost_enable;
     boost.volts = ui->doubleSpinBox_boost_volt_cell;
     boost.currLim = ui->doubleSpinBox_boost_curr_lim;
     boost.gassing = ui->doubleSpinBox_gassing_volt;
@@ -1636,7 +1643,7 @@ void MainWindow::setupModePages()
 
     ModePage &eq = modePages[ModeEqualize];
     eq.page = ui->pageEqualize_settings;
-    eq.toggle = ui->toggle_equalize_enable;
+    eq.toggle = ui->checkBox_equalize_enable;
     eq.volts = ui->doubleSpinBox_equalize_volt_cell;
     eq.currLim = ui->doubleSpinBox_equalize_curr_lim;
     eq.duration = ui->spinBox_equalize_duration;
@@ -1653,7 +1660,7 @@ void MainWindow::setupModePages()
 
     ModePage &init = modePages[ModeInitialize];
     init.page = ui->pageInitialize_settings;
-    init.toggle = ui->toggle_initialize_enable;
+    init.toggle = ui->checkBox_initialize_enable;
     init.volts = ui->doubleSpinBox_initialize_volt_cell;
     init.currLim = ui->doubleSpinBox_initialize_curr_lim;
     init.duration = ui->spinBox_initialize_duration;
@@ -1705,9 +1712,9 @@ void MainWindow::setupModePages()
         }
 
         // Remember what was edited
-        connect(m.toggle, &QPushButton::toggled, this, [this, kind](bool on)
+        connect(m.toggle, &QCheckBox::toggled, this, [this, kind](bool on)
                 {
-                    modePages[kind].toggle->setText(on ? "ENABLED" : "DISABLED");
+                    modePages[kind].toggle->setText(on ? "Enabled" : "Disabled");
                     if (!modePages[kind].loading)
                         modeFieldEdited(kind, FieldEnabled);
                 });
@@ -1828,10 +1835,10 @@ void MainWindow::handleModeReply(quint16 command, const QByteArray &payload)
         {
             const QSignalBlocker b2(m.volts), b3(m.currLim), b4(m.duration), b5(m.overrideTime);
             const bool on = m.raw.at(m.offset[FieldEnabled]) != 0;
-            m.loading = true;                       // the switch must keep its signals, or it does not slide
+            m.loading = true;                       // filling in values, not an edit
             m.toggle->setChecked(on);
             m.loading = false;
-            m.toggle->setText(on ? "ENABLED" : "DISABLED");
+            m.toggle->setText(on ? "Enabled" : "Disabled");
             m.volts->setValue(double(floatAt(m.raw, m.offset[FieldVolts])));
             m.duration->setValue(int(qMin<quint32>(u32At(m.raw, m.offset[FieldDuration]), 2147483647u)));
             if (m.offset[FieldOverride] >= 0)

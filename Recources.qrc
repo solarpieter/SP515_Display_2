@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/Recources/ICON">
         <file>Recources/ICON/time.svg</file>
+        <file alias="tick.png">Recources/ICON/tick.png</file>
     </qresource>
 </RCC>

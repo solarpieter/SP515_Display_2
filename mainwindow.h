@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QButtonGroup>
+#include <QCheckBox>
 #include <QDateTime>
 #include <QDoubleSpinBox>
 #include <QElapsedTimer>
@@ -241,7 +242,7 @@ private:
     struct ModePage
     {
         QWidget *page = nullptr;
-        QPushButton *toggle = nullptr;                              // the Function switch (a ToggleSwitch)
+        QCheckBox *toggle = nullptr;                                // the Function tick box
         QDoubleSpinBox *volts = nullptr, *currLim = nullptr, *gassing = nullptr;
         QSpinBox *duration = nullptr, *overrideTime = nullptr, *repeat = nullptr;
         QLabel *status = nullptr;

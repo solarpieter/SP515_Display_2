@@ -57,6 +57,49 @@ QComboBox#comboBox_battery_type
     border-radius: 8px;
 }
 
+/* Battery type list: tall entries with room between them, easy to hit with a finger */
+QComboBox#comboBox_battery_type {
+    padding-left: 12px;
+    combobox-popup: 0;                  /* a normal list, so the entry height below is used */
+}
+
+QComboBox#comboBox_battery_type QAbstractItemView {
+    background-color: #000000;
+    color: white;
+    border: 2px solid #707070;
+    selection-background-color: #18CFE0;
+    selection-color: black;
+    outline: 0;
+}
+
+QComboBox#comboBox_battery_type QAbstractItemView::item {
+    min-height: 60px;
+    padding-left: 12px;
+}
+
+/* Tick boxes (the Function setting on the Boost, Equalize and Initialize pages) */
+QCheckBox {
+    spacing: 16px;
+}
+
+QCheckBox::indicator {
+    width: 40px;
+    height: 40px;
+    background-color: #000000;
+    border: 2px solid #707070;
+    border-radius: 8px;
+}
+
+QCheckBox::indicator:checked {
+    background-color: #1E8E3E;
+    border-color: #FFFFFF;
+    image: url(:/Recources/ICON/tick.png);
+}
+
+QCheckBox::indicator:disabled {
+    border-color: #404040;
+}
+
 /* Titles */
 QLabel {
     color: white;
