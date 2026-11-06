@@ -69,6 +69,8 @@ static bool calculateNewGain(double currentGain, double offset, double reading, 
 
 namespace {
 
+float floatAt(const QByteArray &bytes, int offset);     // defined with the battery settings page below
+
 // Name of a charge mode, from the mode number the SP515 reports in its status.
 // The numbers are eChargeMode_t in the SP515 firmware (service_charge.h); keep this list in the same order.
 // A number without a name is shown as "MODE n".
@@ -284,6 +286,8 @@ MainWindow::MainWindow(QWidget *parent)
             });
     connect(rs485, &Rs485Client::commandFinished, this, [this](quint16 command, bool ok, const QString &message)
             {
+                if (handleChargerOnCommandFinished(command, ok, message))
+                    return;                                 // the reads before switching the charger ON
                 if (handleModeCommandFinished(command, ok, message))
                     return;                                 // a boost, equalize or initialize page read or save
                 if (handleBatteryCommandFinished(command, ok, message))
@@ -325,6 +329,7 @@ MainWindow::MainWindow(QWidget *parent)
                 reportCalibrationResult(ok, "Calibration failed:\n" + message);
             });
     updateCurrentValueLabel();
+    connect(rs485, &Rs485Client::replyReceived, this, &MainWindow::handleChargerOnReply);
 
     setupDisplayPage();
     setupBatteryPage();
@@ -511,6 +516,12 @@ void MainWindow::on_btnChargerEnable_clicked(bool checked)
     // The button has just flipped itself. Put it back and ask first: it only changes if the answer is Yes.
     ui->btnChargerEnable->setChecked(!checked);
 
+    if (checked)
+    {
+        beginChargerOn();                           // reads the float settings, then asks with the numbers
+        return;
+    }
+
     auto *box = new QMessageBox(QMessageBox::Question, "Charger",
                                 QString("Are you sure you want to switch the charger %1?").arg(checked ? "ON" : "OFF"),
                                 QMessageBox::Yes | QMessageBox::No, this);
@@ -526,23 +537,124 @@ void MainWindow::on_btnChargerEnable_clicked(bool checked)
     box->open();                                    // does not block the display
 }
 
-// Asks the SP515 to switch the charger. The switch only moves when the SP515 has confirmed it.
+// Asks the SP515 to switch the charger OFF (0 V, 0 A). The switch only moves when the SP515 has confirmed it.
 void MainWindow::requestChargerState(bool on)
 {
     if (chargerCommandPending)
         return;
 
-    if (on && (chargerOnVoltage <= 0.0f || chargerOnCurrentLimit <= 0.0f))
-    {
-        showMessageBox("Charger", "The charger voltage and current limit have not been set yet.");
-        return;
-    }
-
     chargerCommandPending = true;
     chargerPendingOn = on;
     ui->btnChargerEnable->setEnabled(false);        // no second press while we wait for the answer
 
-    rs485->setChargerSetpoint(on, on ? chargerOnVoltage : 0.0f, on ? chargerOnCurrentLimit : 0.0f);
+    rs485->setChargerSetpoint(on, 0.0f, 0.0f);
+}
+
+// ---- Switching the charger ON -----------------------------------------------
+// The SP515 enables the charger together with a voltage and a current limit. They are not kept in the
+// display: when ON is pressed the float and battery settings are read from the SP515, the numbers are
+// worked out from them and shown for a Yes / No answer, and only then sent.
+
+void MainWindow::releaseChargerPending()
+{
+    chargerAwaitFloat = chargerAwaitBattery = false;
+    chargerCommandPending = false;
+    ui->btnChargerEnable->setEnabled(chargerStateKnown);        // the next status reading sets the switch
+}
+
+void MainWindow::beginChargerOn()
+{
+    if (chargerCommandPending)
+        return;
+    chargerCommandPending = true;                   // the switch is left alone until this is finished
+    chargerPendingOn = true;
+    ui->btnChargerEnable->setEnabled(false);
+    chargerFloatRaw.clear();
+    chargerBatteryRaw.clear();
+    chargerAwaitFloat = chargerAwaitBattery = true;
+    rs485->sendCommand(Rs485Client::GetFloatConfig);
+    rs485->sendCommand(Rs485Client::GetBatteryConfig);
+}
+
+void MainWindow::handleChargerOnReply(quint16 command, const QByteArray &payload)
+{
+    if (command == Rs485Client::GetFloatConfig && chargerAwaitFloat)
+    {
+        chargerAwaitFloat = false;
+        chargerFloatRaw = payload;
+    }
+    else if (command == Rs485Client::GetBatteryConfig && chargerAwaitBattery)
+    {
+        chargerAwaitBattery = false;
+        chargerBatteryRaw = payload;
+    }
+    else
+        return;
+
+    if (!chargerAwaitFloat && !chargerAwaitBattery)
+        askChargerOn();
+}
+
+// A read for the ON request failed (successes arrive in handleChargerOnReply). Returns true when it was ours.
+bool MainWindow::handleChargerOnCommandFinished(quint16 command, bool ok, const QString &message)
+{
+    const bool isFloat = command == Rs485Client::GetFloatConfig && chargerAwaitFloat;
+    const bool isBattery = command == Rs485Client::GetBatteryConfig && chargerAwaitBattery;
+    if (!isFloat && !isBattery)
+        return false;
+    if (ok)
+        return true;
+
+    const quint8 status = rs485->lastErrorStatus();
+    const QString reason = status == 3 ? QString("No answer from the SP515")
+                         : (status == 0 ? QString("No answer from the daemon") : message);
+    releaseChargerPending();
+    showMessageBox("Charger", QString("The charger was NOT switched ON.\nThe %1 could not be read from the SP515:\n%2")
+                                  .arg(isFloat ? "float settings" : "battery settings", reason));
+    return true;
+}
+
+void MainWindow::askChargerOn()
+{
+    if (chargerFloatRaw.size() != 8 || chargerBatteryRaw.size() != 7)
+    {
+        releaseChargerPending();
+        showMessageBox("Charger", "The charger was NOT switched ON.\nThe SP515 sent settings in an unexpected format.");
+        return;
+    }
+
+    const float cellV = floatAt(chargerFloatRaw, 0);
+    const float amps = floatAt(chargerFloatRaw, 4);                 // the float current limit (the recharge rate)
+    const int cells = quint8(chargerBatteryRaw.at(1));
+    const double capacityStrings = double(floatAt(chargerBatteryRaw, 3)) * quint8(chargerBatteryRaw.at(2));
+    const float volts = cellV * cells;
+
+    if (!std::isfinite(volts) || !std::isfinite(amps) || volts <= 0.0f || amps <= 0.0f)
+    {
+        releaseChargerPending();
+        showMessageBox("Charger", "The charger was NOT switched ON.\nThe float V/Cell, the cells per string or the "
+                                  "recharge rate on the SP515 is zero.\nSet them on the Battery Settings page first.");
+        return;
+    }
+
+    QString text = QString("Switch the charger ON?\n\nVoltage: %1 V  (%2 cells x %3 V)\nCurrent limit: %4 A")
+                       .arg(double(volts), 0, 'f', 2).arg(cells).arg(double(cellV), 0, 'f', 3).arg(double(amps), 0, 'f', 1);
+    if (capacityStrings > 0.0)
+        text += QString("  (%1 % of capacity x strings)").arg(double(amps) / (capacityStrings / 100.0), 0, 'f', 1);
+
+    auto *box = new QMessageBox(QMessageBox::Question, "Charger", text, QMessageBox::Yes | QMessageBox::No, this);
+    box->setDefaultButton(QMessageBox::No);         // Enter, or closing the window, means No
+    box->setEscapeButton(QMessageBox::No);
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    applyBigPopupStyle(box);
+    connect(box, &QMessageBox::finished, this, [this, volts, amps](int result)
+            {
+                if (result == QMessageBox::Yes)
+                    rs485->setChargerSetpoint(true, volts, amps);   // the answer arrives with SetChargeSetpoint
+                else
+                    releaseChargerPending();
+            });
+    box->open();                                    // does not block the display
 }
 
 // The SP515 reported its charger state (every second): the switch follows it, so it is always right
@@ -1035,7 +1147,7 @@ const BatteryBlockLayout batteryLayout[] =
 // A config SET can take the daemon up to 5 s, so wait a little longer than that.
 const int batterySetTimeoutMs = 7000;
 
-const char *const batteryUnsentNote = "Recharge rate, efficiency and compensation are not sent to the SP515 yet.";
+const char *const batteryUnsentNote = "Recharge efficiency and compensation are not sent to the SP515 yet.";
 
 // The battery type list on the page has six entries; the SP515 stores only the chemistry.
 // Index in comboBox_battery_type -> eBattType_t (1 lead acid, 2 NiCad, 3 lithium).
@@ -1126,11 +1238,10 @@ void MainWindow::setupBatteryPage()
         batteryKeypad->registerEdit(spin);
     }
 
-    // Recharge rate, recharge efficiency and temperature compensation can be edited, but are not sent
-    // to the SP515 yet: no command carries the profile values, and the daemon does not support the
-    // compensation commands (16 and 17) yet. Say so when one is edited.
-    for (QDoubleSpinBox *spin : {ui->doubleSpinBox_recharge_rate, ui->doubleSpinBox_recharge_eff,
-                                 ui->doubleSpinBox_compensation})
+    // Recharge efficiency and temperature compensation can be edited, but are not sent to the SP515 yet:
+    // no command carries the profile value, and the daemon does not support the compensation commands
+    // (16 and 17) yet. Say so when one is edited.
+    for (QDoubleSpinBox *spin : {ui->doubleSpinBox_recharge_eff, ui->doubleSpinBox_compensation})
         connect(spin, qOverload<double>(&QDoubleSpinBox::valueChanged), this, [this](double)
                 {
                     batteryUnsentEdited = true;
@@ -1144,7 +1255,23 @@ void MainWindow::setupBatteryPage()
     connect(ui->spinBox_strings,  qOverload<int>(&QSpinBox::valueChanged), this, [this](int) { batteryEdited(BlockBattery); });
     for (int block : {BlockFloat, BlockBoost, BlockEqualize, BlockInitialize})
         connect(batteryCellVSpin(block), qOverload<double>(&QDoubleSpinBox::valueChanged), this,
-                [this, block](double) { batteryEdited(block); });
+                [this, block](double)
+                {
+                    if (block == BlockFloat)
+                        batteryFloatCellVEdited = true;
+                    batteryEdited(block);
+                });
+
+    // The recharge rate is the float current limit, shown as a % of capacity x strings
+    ui->doubleSpinBox_recharge_rate->setDecimals(1);
+    ui->doubleSpinBox_recharge_rate->setRange(0.0, 1000.0);
+    connect(ui->doubleSpinBox_recharge_rate, qOverload<double>(&QDoubleSpinBox::valueChanged), this,
+            [this](double)
+            {
+                batteryRateEdited = true;
+                batteryEdited(BlockFloat);
+            });
+    updateRechargeRateBox();                        // off until the values have been read
 
     // Read the values every time the page is opened
     connect(ui->stackedWidget, &QStackedWidget::currentChanged, this, [this](int)
@@ -1204,6 +1331,7 @@ void MainWindow::loadBatterySettings()
 
     batteryGetFailed = false;
     batteryUnsentEdited = false;
+    batteryFloatCellVEdited = batteryRateEdited = false;
     setBatteryStatus("Reading from the SP515...", 0);
     for (int block = 0; block < BlockCount; ++block)
     {
@@ -1213,6 +1341,7 @@ void MainWindow::loadBatterySettings()
         ++batteryPendingGets;
         rs485->sendCommand(batteryLayout[block].getCommand);
     }
+    updateRechargeRateBox();
     updateBatteryButtons();
 }
 
@@ -1262,6 +1391,8 @@ void MainWindow::handleBatteryReply(quint16 command, const QByteArray &payload)
                 batteryCellVSpin(block)->setValue(double(floatAt(payload, layout.cellVOffset)));
             }
             setBatteryBlockEnabled(block, true);
+            if (block == BlockFloat || block == BlockBattery)
+                updateRechargeRateBox();
         }
         break;
     }
@@ -1270,10 +1401,30 @@ void MainWindow::handleBatteryReply(quint16 command, const QByteArray &payload)
     {
         if (batteryGetFailed)
             setBatteryStatus("Could not read all the values.", 2);
+        else if (batteryBlocks[BlockBattery].loaded && batteryBlocks[BlockFloat].loaded
+                 && !ui->doubleSpinBox_recharge_rate->isEnabled())
+            setBatteryStatus("The recharge rate needs the battery capacity and strings.", 3);
         else
             setBatteryStatus("Values read from the SP515.", 0);
         updateBatteryButtons();
     }
+}
+
+// Recharge rate % = float current limit (amps) / (capacity x strings) x 100, from the values read from the SP515
+void MainWindow::updateRechargeRateBox()
+{
+    const BatteryBlockState &battery = batteryBlocks[BlockBattery];
+    const BatteryBlockState &floatCfg = batteryBlocks[BlockFloat];
+    double capacityStrings = 0.0;
+    if (battery.loaded && battery.raw.size() == 7)
+        capacityStrings = double(floatAt(battery.raw, 3)) * quint8(battery.raw.at(2));
+    const bool usable = floatCfg.loaded && floatCfg.raw.size() == 8 && capacityStrings > 0.0;
+
+    ui->doubleSpinBox_recharge_rate->setEnabled(usable);
+    if (batteryRateEdited)
+        return;                                     // keep what the user typed
+    const QSignalBlocker blocker(ui->doubleSpinBox_recharge_rate);
+    ui->doubleSpinBox_recharge_rate->setValue(usable ? double(floatAt(floatCfg.raw, 4)) / (capacityStrings / 100.0) : 0.0);
 }
 
 void MainWindow::batteryEdited(int block)
@@ -1316,6 +1467,13 @@ bool MainWindow::handleBatteryCommandFinished(quint16 command, bool ok, const QS
                 batteryBlocks[block].raw = batteryBlocks[block].sent;
                 batteryBlocks[block].dirty = false;
                 batteryErrorLabel(block)->clear();
+                if (block == BlockFloat)
+                {
+                    batteryFloatCellVEdited = batteryRateEdited = false;
+                    updateRechargeRateBox();
+                }
+                else if (block == BlockBattery)
+                    updateRechargeRateBox();                // capacity or strings may have changed
             }
             else
             {
@@ -1365,6 +1523,24 @@ void MainWindow::on_pushButton_battset_save_clicked()
             payload[1] = char(ui->spinBox_cells->value());
             payload[2] = char(ui->spinBox_strings->value());
             putFloat(payload, 3, float(ui->spinBox_capacity->value()));
+        }
+        else if (block == BlockFloat)
+        {
+            // Keep everything else in the config as the SP515 reported it; only the edited fields change
+            if (batteryFloatCellVEdited)
+                putFloat(payload, batteryLayout[block].cellVOffset, float(batteryCellVSpin(block)->value()));
+            if (batteryRateEdited)
+            {
+                // recharge rate % of capacity x strings (as shown on this page) -> the current limit in amps
+                const double capacityStrings = double(ui->spinBox_capacity->value()) * ui->spinBox_strings->value();
+                if (capacityStrings <= 0.0)
+                {
+                    batteryErrorLabel(block)->setText("Needs the capacity and strings");
+                    setBatteryStatus("Nothing was saved.", 2);
+                    return;
+                }
+                putFloat(payload, 4, float(ui->doubleSpinBox_recharge_rate->value() * capacityStrings / 100.0));
+            }
         }
         else
         {

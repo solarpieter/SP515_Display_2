@@ -32,14 +32,6 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
 
-    // Charger voltage (V) and current limit (A) that are sent when the charger is switched ON.
-    // The settings pages call this; until it has been called the charger cannot be switched ON.
-    void setChargerSetpoint(float voltage, float currentLimit)
-    {
-        chargerOnVoltage = voltage;
-        chargerOnCurrentLimit = currentLimit;
-    }
-
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;     // sees every touch / key, for the idle timers
 
@@ -175,11 +167,21 @@ private:
     void setChargerUnknown();                       // no state from the SP515 (no link): the switch is greyed out
     bool chargerStateKnown = false;
     int statusFailures = 0;                         // status requests in a row that got no answer
-    void requestChargerState(bool on);              // ask the SP515 to switch the charger (after the user said Yes)
+    void requestChargerState(bool on);              // ask the SP515 to switch the charger OFF (after the user said Yes)
     bool chargerCommandPending = false;
     bool chargerPendingOn = false;
-    float chargerOnVoltage = 0.0f;                  // sent with ON, set from the settings pages
-    float chargerOnCurrentLimit = 0.0f;
+    // Switching ON: the voltage and current limit are worked out from the SP515's own float and battery
+    // settings, read at that moment: voltage = float V/Cell x cells per string, current limit = the
+    // float current limit (the recharge rate). The operator sees both numbers before saying Yes.
+    void beginChargerOn();
+    void askChargerOn();
+    void handleChargerOnReply(quint16 command, const QByteArray &payload);
+    bool handleChargerOnCommandFinished(quint16 command, bool ok, const QString &message);
+    void releaseChargerPending();
+    bool chargerAwaitFloat = false;
+    bool chargerAwaitBattery = false;
+    QByteArray chargerFloatRaw;
+    QByteArray chargerBatteryRaw;
     void showMessageBox(const QString &title, const QString &text);
     qint64 clockOffsetSecs = 0;     // set when the date/time is saved; added to the system clock
     Rs485Client *rs485;
@@ -202,6 +204,9 @@ private:
     int batteryPendingSets = 0;                     // saves still waiting for an answer
     bool batterySetFailed = false;
     bool batteryGetFailed = false;
+    bool batteryFloatCellVEdited = false;           // the Float V/Cell box was edited
+    bool batteryRateEdited = false;                 // the Recharge Rate box was edited (float current limit)
+    void updateRechargeRateBox();                   // recharge rate % from the float current limit and the capacity x strings
     bool batteryUnsentEdited = false;               // recharge rate, efficiency or compensation edited: not sent to the SP515
     void setupBatteryPage();
     void setSystemInfo(const QString &line1, const char *color1, const QString &line2, const char *color2 = nullptr);   // two-line text on the dashboard
