@@ -247,11 +247,12 @@ private:
     // edited fields back with SAVE. A field the SP515 config does not have yet (offset -1) can be
     // edited, but is not sent, and the page says so.
     enum ModeKind { ModeBoost, ModeEqualize, ModeInitialize, ModeCount };
-    enum ModeField { FieldEnabled, FieldVolts, FieldCurrLim, FieldDuration, FieldOverride, FieldRepeat, FieldGassing, FieldCount };
+    enum ModeField { FieldEnabled, FieldVolts, FieldCurrLim, FieldDuration, FieldOverride, FieldRepeat, FieldGassing, FieldLoadOn, FieldCount };
     struct ModePage
     {
         QWidget *page = nullptr;
         QCheckBox *toggle = nullptr;                                // the Function tick box
+        QCheckBox *loadOn = nullptr;                                // Load On Equalize (Equalize page only)
         QDoubleSpinBox *volts = nullptr, *currLim = nullptr, *gassing = nullptr;
         QSpinBox *duration = nullptr, *overrideTime = nullptr, *repeat = nullptr;
         QLabel *status = nullptr;

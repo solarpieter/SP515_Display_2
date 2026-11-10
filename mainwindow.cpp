@@ -1839,7 +1839,7 @@ void MainWindow::setupModePages()
     boost.size = 26;                // bool, bool, U32 cycle, U32 duration, U32 override, float V/cell, float current limit, float gassing
     boost.offset[FieldEnabled] = 0;   boost.offset[FieldVolts] = 14;  boost.offset[FieldCurrLim] = 18;
     boost.offset[FieldDuration] = 6;  boost.offset[FieldOverride] = 10; boost.offset[FieldRepeat] = 2;
-    boost.offset[FieldGassing] = 22;
+    boost.offset[FieldGassing] = 22;  boost.offset[FieldLoadOn] = -1;
 
     ModePage &eq = modePages[ModeEqualize];
     eq.page = ui->pageEqualize_settings;
@@ -1847,7 +1847,7 @@ void MainWindow::setupModePages()
     eq.volts = ui->doubleSpinBox_equalize_volt_cell;
     eq.currLim = ui->doubleSpinBox_equalize_curr_lim;
     eq.duration = ui->spinBox_equalize_duration;
-    eq.overrideTime = ui->spinBox_equalize_overide_time;
+    eq.loadOn = ui->checkBox_load_on_equalize;
     eq.status = ui->label_equalizecfg_status;
     eq.save = ui->pushButton_equalize_save;
     eq.getCommand = Rs485Client::GetEqualizeConfig;
@@ -1855,8 +1855,8 @@ void MainWindow::setupModePages()
     eq.size = 14;                   // bool, bool, U32 duration, float V/cell, float current limit
     eq.offset[FieldEnabled] = 0;   eq.offset[FieldVolts] = 6;  eq.offset[FieldCurrLim] = 10;
     eq.offset[FieldDuration] = 2;  eq.offset[FieldOverride] = -1; eq.offset[FieldRepeat] = -1;
+    eq.offset[FieldLoadOn] = 1;                     // the onLoadEnabled flag
     eq.offset[FieldGassing] = -1;
-    eq.unsentNote = "The override timer is not sent to the SP515 yet.";
 
     ModePage &init = modePages[ModeInitialize];
     init.page = ui->pageInitialize_settings;
@@ -1864,7 +1864,6 @@ void MainWindow::setupModePages()
     init.volts = ui->doubleSpinBox_initialize_volt_cell;
     init.currLim = ui->doubleSpinBox_initialize_curr_lim;
     init.duration = ui->spinBox_initialize_duration;
-    init.overrideTime = ui->spinBox_initialize_overide_time;
     init.status = ui->label_initializecfg_status;
     init.save = ui->pushButton_initialize_save;
     init.getCommand = Rs485Client::GetInitializeConfig;
@@ -1872,8 +1871,8 @@ void MainWindow::setupModePages()
     init.size = 13;                 // bool, U32 duration, float V/cell, float current limit
     init.offset[FieldEnabled] = 0;   init.offset[FieldVolts] = 5;  init.offset[FieldCurrLim] = 9;
     init.offset[FieldDuration] = 1;  init.offset[FieldOverride] = -1; init.offset[FieldRepeat] = -1;
+    init.offset[FieldLoadOn] = -1;
     init.offset[FieldGassing] = -1;
-    init.unsentNote = "The override timer is not sent to the SP515 yet.";
 
     for (int kind = 0; kind < ModeCount; ++kind)
     {
@@ -1893,7 +1892,8 @@ void MainWindow::setupModePages()
         m.currLim->setRange(0.0, 1000.0);
         m.currLim->setSuffix(" %");
         m.duration->setRange(0, 2147483647);
-        m.overrideTime->setRange(0, 1000000);
+        if (m.overrideTime)                             // Boost only
+            m.overrideTime->setRange(0, 1000000);
         if (m.repeat)                                   // Boost only
             m.repeat->setRange(0, 49000);
 
@@ -1921,7 +1921,15 @@ void MainWindow::setupModePages()
         connect(m.volts, qOverload<double>(&QDoubleSpinBox::valueChanged), this, [this, kind](double) { modeFieldEdited(kind, FieldVolts); });
         connect(m.currLim, qOverload<double>(&QDoubleSpinBox::valueChanged), this, [this, kind](double) { modeFieldEdited(kind, FieldCurrLim); });
         connect(m.duration, qOverload<int>(&QSpinBox::valueChanged), this, [this, kind](int) { modeFieldEdited(kind, FieldDuration); });
-        connect(m.overrideTime, qOverload<int>(&QSpinBox::valueChanged), this, [this, kind](int) { modeFieldEdited(kind, FieldOverride); });
+        if (m.overrideTime)
+            connect(m.overrideTime, qOverload<int>(&QSpinBox::valueChanged), this, [this, kind](int) { modeFieldEdited(kind, FieldOverride); });
+        if (m.loadOn)
+            connect(m.loadOn, &QCheckBox::toggled, this, [this, kind](bool on)
+                    {
+                        modePages[kind].loadOn->setText(on ? "Yes" : "No");
+                        if (!modePages[kind].loading)
+                            modeFieldEdited(kind, FieldLoadOn);
+                    });
         if (m.repeat)
             connect(m.repeat, qOverload<int>(&QSpinBox::valueChanged), this, [this, kind](int) { modeFieldEdited(kind, FieldRepeat); });
         if (m.gassing)
@@ -1938,6 +1946,10 @@ void MainWindow::setupModePages()
     connect(ui->pushButton_equalize_back, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageBattery_settings); });
     connect(ui->pushButton_initialize_home, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageDashboard); });
     connect(ui->pushButton_initialize_back, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageBattery_settings); });
+
+    // Battery Modes page
+    connect(ui->pushButton_home_batt_modes, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageDashboard); });
+    connect(ui->pushButton_back_batt_modes, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageMenu); });
 
     // The buttons on Battery Settings (the Boost one is on_pushButton_8_clicked)
     connect(ui->pushButton_9, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageEqualize_settings); });
@@ -1961,7 +1973,10 @@ void MainWindow::enableModeFields(int kind)
     m.toggle->setEnabled(on);
     m.volts->setEnabled(on);
     m.duration->setEnabled(on);
-    m.overrideTime->setEnabled(on);
+    if (m.overrideTime)
+        m.overrideTime->setEnabled(on);
+    if (m.loadOn)
+        m.loadOn->setEnabled(on);
     if (m.repeat)
         m.repeat->setEnabled(on);
     if (m.gassing)
@@ -2033,7 +2048,7 @@ void MainWindow::handleModeReply(quint16 command, const QByteArray &payload)
         // Both reads are back: fill in the page
         if (m.configLoaded)
         {
-            const QSignalBlocker b2(m.volts), b3(m.currLim), b4(m.duration), b5(m.overrideTime);
+            const QSignalBlocker b2(m.volts), b3(m.currLim), b4(m.duration);
             const bool on = m.raw.at(m.offset[FieldEnabled]) != 0;
             m.loading = true;                       // filling in values, not an edit
             m.toggle->setChecked(on);
@@ -2041,8 +2056,19 @@ void MainWindow::handleModeReply(quint16 command, const QByteArray &payload)
             m.toggle->setText(on ? "Enabled" : "Disabled");
             m.volts->setValue(double(floatAt(m.raw, m.offset[FieldVolts])));
             m.duration->setValue(int(qMin<quint32>(u32At(m.raw, m.offset[FieldDuration]), 2147483647u)));
-            if (m.offset[FieldOverride] >= 0)
+            if (m.overrideTime && m.offset[FieldOverride] >= 0)
+            {
+                const QSignalBlocker b5(m.overrideTime);
                 m.overrideTime->setValue(qRound(double(u32At(m.raw, m.offset[FieldOverride])) / hourSeconds));
+            }
+            if (m.loadOn && m.offset[FieldLoadOn] >= 0)
+            {
+                const bool loadOn = m.raw.at(m.offset[FieldLoadOn]) != 0;
+                m.loading = true;
+                m.loadOn->setChecked(loadOn);
+                m.loading = false;
+                m.loadOn->setText(loadOn ? "Yes" : "No");
+            }
             if (m.repeat && m.offset[FieldRepeat] >= 0)
             {
                 const QSignalBlocker b6(m.repeat);
@@ -2170,6 +2196,7 @@ void MainWindow::saveModePage(int kind)
         case FieldDuration: putU32(payload, at, quint32(m.duration->value())); break;
         case FieldOverride: putU32(payload, at, quint32(qint64(m.overrideTime->value()) * hourSeconds)); break;
         case FieldRepeat:   putU32(payload, at, quint32(qint64(m.repeat->value()) * daySeconds)); break;
+        case FieldLoadOn:   payload[at] = m.loadOn->isChecked() ? 1 : 0; break;
         }
     }
     if (!any)
