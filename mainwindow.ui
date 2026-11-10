@@ -1045,6 +1045,34 @@
        </size>
       </property>
      </widget>
+     <widget class="QPushButton" name="pushButtonMenuExit">
+      <property name="geometry">
+       <rect>
+        <x>1066</x>
+        <y>580</y>
+        <width>205</width>
+        <height>100</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>20</pointsize>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>EXIT</string>
+      </property>
+      <property name="icon">
+       <iconset theme="QIcon::ThemeIcon::ApplicationExit"/>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>48</width>
+        <height>48</height>
+       </size>
+      </property>
+     </widget>
      <widget class="QWidget" name="layoutWidget">
       <property name="geometry">
        <rect>
@@ -3869,7 +3897,7 @@
         <second>0</second>
         <year>2026</year>
         <month>1</month>
-        <day>18</day>
+        <day>17</day>
        </datetime>
       </property>
       <property name="displayFormat">

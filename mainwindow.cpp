@@ -443,6 +443,24 @@ void MainWindow::on_pushButtonDateSave_clicked()
 }
 
 
+// Closes the display program (the charger and the daemon keep running). Asks first, so a stray touch does nothing.
+void MainWindow::on_pushButtonMenuExit_clicked()
+{
+    auto *box = new QMessageBox(QMessageBox::Question, "Exit display",
+                                "Close the display?\n\nThe charger keeps running. Start the display program again to see it.",
+                                QMessageBox::Yes | QMessageBox::No, this);
+    box->setDefaultButton(QMessageBox::No);         // Enter, or closing the window, means No
+    box->setEscapeButton(QMessageBox::No);
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    applyBigPopupStyle(box);
+    connect(box, &QMessageBox::finished, this, [](int result)
+            {
+                if (result == QMessageBox::Yes)
+                    QApplication::quit();           // a normal exit (code 0): the back light is restored on the way out
+            });
+    box->open();
+}
+
 void MainWindow::on_pushButtonMenuHome_clicked()
 {
      ui->stackedWidget->setCurrentWidget(ui->pageDashboard);

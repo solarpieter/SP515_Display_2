@@ -48,6 +48,8 @@ private slots:
 
     void on_pushButtonMenuHome_clicked();
 
+    void on_pushButtonMenuExit_clicked();
+
     void on_pushButtonDisplaySave_clicked();
 
     void on_pushButtonDisplayBack_clicked();

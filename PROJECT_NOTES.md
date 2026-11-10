@@ -37,7 +37,7 @@ Lessons learned:
 
 ## Fullscreen and screen selection
 
-- `main.cpp` runs the app fullscreen with `showFullScreen()`, so there is no title bar. Press **Alt+F4** to quit.
+- `main.cpp` runs the app fullscreen with `showFullScreen()`, so there is no title bar. Press **Alt+F4** to quit, or use the **EXIT** button on the Menu page.
 - The app opens on the screen that is exactly 1280 x 720, otherwise the primary screen. To force a screen, set `SP515_SCREEN=<name>` (the screen names are printed at startup).
 - The old `qputenv("QT_IM_MODULE", "qtvirtualkeyboard")` line was removed from `main.cpp`.
 - If touch input lands on the wrong screen, fix the touchscreen mapping in the Pi's Screen Configuration settings.
@@ -65,7 +65,6 @@ Current pages: `pageDashboard`, `pageMenu`, `pageCalibration`, `pageBattery_sett
 - **Alarm Settings** has an empty slot. The page exists but nothing navigates to it. It also needs a BACK button.
 - **Battery Settings:** the Recharge Rate box is the float current limit (`batteryCurLim` in the float config, amps) shown as a % of capacity x strings, and is saved with the float config (command 7) together with the Float V/Cell; only the edited field is changed. Recharge efficiency and temperature compensation can be edited (the page then shows an orange note) but are not sent, because no command carries the efficiency (the profile value lives in the SP515 firmware) and the daemon does not support the compensation commands 16 and 17 yet. Once they exist, add them to the load and save code. The battery type list has six entries, but the SP515 stores only the chemistry (lead acid, NiCad, lithium), so Flooded and VRLA both save as lead acid and NiCad L, M and H as NiCad. The daemon answers "failed" both when the SP515 rejects a value and when it does not answer, so the page cannot tell those two apart.
 - **Calibrate** and **Apply Offset** buttons on the calibration page are not wired to anything yet.
-- Add a hidden exit for the fullscreen app, if one is wanted.
 - Fill in the remaining `TODO`s in `README.md`: Qt version and packages, UART device name, data/parity/stop bits (probably 8N1), bus termination, names of the send and receive apps, and how the display app talks to them.
 - Decide and document the link between the display app and the send/receive apps (socket, pipe, etc.).
 - Check the other pages for edits that should use the numeric keypad.

@@ -109,7 +109,7 @@ cmake --build build/Desktop-Debug
 
 Start the daemon first, then the display. The `build/` folder is ignored by Git. Never commit build output.
 
-There is no title bar and no close button. Quit with **Alt+F4** (or **Ctrl+C** in the terminal you started it from).
+There is no title bar and no close button. Quit with the **EXIT** button at the bottom right of the Menu page (it asks first), or with **Alt+F4** (or **Ctrl+C** in the terminal you started it from). Exiting only closes the display; the charger and the daemon keep running.
 
 ### Screens
 
