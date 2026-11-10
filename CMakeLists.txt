@@ -21,6 +21,10 @@ set(PROJECT_SOURCES
         mainwindow.ui
 	numerickeypad.h
 	numerickeypad.cpp
+	textkeyboard.h
+	textkeyboard.cpp
+	netcontrol.h
+	netcontrol.cpp
 	toggleswitch.h
 	toggleswitch.cpp
 	backlight.h

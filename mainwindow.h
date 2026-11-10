@@ -14,8 +14,10 @@
 #include <QMainWindow>
 #include <QTimer>
 #include "backlight.h"
+#include "netcontrol.h"
 #include "numerickeypad.h"
 #include "screensaver.h"
+#include "textkeyboard.h"
 #include "rs485client.h"
 
 QT_BEGIN_NAMESPACE
@@ -277,6 +279,32 @@ private:
     bool handleModeCommandFinished(quint16 command, bool ok, const QString &message);
     void setModeStatus(int kind, const QString &text, int level);   // level: 0 neutral, 1 good, 2 error, 3 warning
     void enableModeFields(int kind);
+
+    // Communication Settings page: Wi-Fi and the wired (LAN) port, through NetworkManager (nmcli)
+    NetControl *net = nullptr;
+    TextKeyboard *commKeyboard = nullptr;
+    NumericKeypad *commKeypad = nullptr;
+    QTimer *commTimer = nullptr;
+    WifiState commWifi;
+    LanState commLan;
+    bool commWifiKnown = false;                     // the Wi-Fi state has been read at least once
+    bool commWifiBusy = false;                      // a Wi-Fi switch or connect is running
+    bool commLanBusy = false;                       // a LAN save is running
+    bool commScanned = false;                       // a scan was started since the page opened (or Wi-Fi was switched on)
+    bool commScanning = false;
+    bool commWifiRefreshing = false;
+    bool commLanRefreshing = false;
+    QString commWifiMessage;                        // the last result, shown under the Wi-Fi state
+    bool commWifiMessageIsError = false;
+    void setupCommPage();
+    void commPageOpened();
+    void commStartScan();
+    void commRenderWifi();                          // the Wi-Fi state line and the enabled / disabled controls
+    void commShowNetworks(const QList<WifiNetwork> &networks, const QString &error);
+    void commShowLan(const LanState &state);
+    void commUpdateLanFields();
+    void commApplyLan();
+    void commSetLanMessage(const QString &text, bool error);
 
     QDateTime appNow() const;       // system time plus the saved offset
     void updateClockLabels();       // dashboard date and time

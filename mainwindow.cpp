@@ -11,6 +11,11 @@
 #include <QMessageBox>
 #include <QProgressBar>
 #include <QSettings>
+#include <QHostAddress>
+#include <QListWidget>
+#include <QRadioButton>
+#include <QRegularExpressionValidator>
+#include <QScroller>
 #include <QSignalBlocker>
 #include <QtEndian>
 #include <cmath>
@@ -335,6 +340,7 @@ MainWindow::MainWindow(QWidget *parent)
     setupBatteryPage();
     setupPidPage();
     setupModePages();
+    setupCommPage();
 
     // Numbers are typed on the numeric keypad; the small up / down arrows on the spin boxes are too small to use.
     // (Date and time boxes keep theirs: they step through day, month, hour and so on.)
@@ -2180,4 +2186,433 @@ void MainWindow::saveModePage(int kind)
     m.save->setEnabled(false);
     setModeStatus(kind, "Saving...", 0);
     rs485->sendCommand(m.setCommand, payload, modeSetTimeoutMs);
+}
+
+
+// ---- Communication Settings page --------------------------------------------
+//
+// Wi-Fi: a tick box switches it on or off, the networks in range are listed, and a password can be
+// typed on the on-screen keyboard. LAN: DHCP or a fixed address; the address the port really has
+// is always shown. Everything is done through NetworkManager (nmcli), see NetControl.
+
+namespace {
+
+QString prefixToMask(int prefix)
+{
+    if (prefix < 0 || prefix > 32)
+        return QString();
+    const quint32 mask = prefix == 0 ? 0u : (0xFFFFFFFFu << (32 - prefix));
+    return QHostAddress(mask).toString();
+}
+
+// "255.255.255.0" or "24" -> 24; -1 when it is not a usable mask
+int maskToPrefix(const QString &text)
+{
+    bool isNumber = false;
+    const int number = text.trimmed().toInt(&isNumber);
+    if (isNumber)
+        return (number >= 1 && number <= 32) ? number : -1;
+
+    QHostAddress address;
+    if (!address.setAddress(text.trimmed()) || address.protocol() != QAbstractSocket::IPv4Protocol)
+        return -1;
+    quint32 mask = address.toIPv4Address();
+    const quint32 inverted = ~mask;
+    if ((inverted & (inverted + 1u)) != 0u)
+        return -1;                                  // a mask is ones followed by zeros
+    int prefix = 0;
+    while (mask & 0x80000000u) {
+        ++prefix;
+        mask <<= 1;
+    }
+    return prefix >= 1 ? prefix : -1;
+}
+
+bool parseIpv4(const QString &text, quint32 *value)
+{
+    QHostAddress address;
+    if (!address.setAddress(text.trimmed()) || address.protocol() != QAbstractSocket::IPv4Protocol)
+        return false;
+    *value = address.toIPv4Address();
+    return true;
+}
+
+} // namespace
+
+void MainWindow::setupCommPage()
+{
+    net = new NetControl(this);
+    QWidget *page = ui->pageCommunication_settings;
+
+    ui->label_wifi_status->setTextFormat(Qt::RichText);
+    ui->label_wifi_status->clear();
+    ui->label_lan_status->setTextFormat(Qt::RichText);
+    ui->label_lan_status->clear();
+    ui->lineEdit_wifi_password->setEchoMode(QLineEdit::Password);
+    ui->lineEdit_wifi_password->setPlaceholderText("Network password");
+    ui->label_lan_current_ip->setText("--");
+
+    // Keyboard for the password, keypad for the addresses
+    commKeyboard = new TextKeyboard(page);
+    commKeyboard->setKeyHeight(60);
+    commKeyboard->registerEdit(ui->lineEdit_wifi_password);
+
+    commKeypad = new NumericKeypad(page);
+    commKeypad->setKeySize(84, 72);
+    const QRegularExpression ipChars("[0-9.]*");
+    for (QLineEdit *edit : {ui->lineEdit_lan_ip, ui->lineEdit_lan_mask, ui->lineEdit_lan_gateway, ui->lineEdit_lan_dns}) {
+        edit->setValidator(new QRegularExpressionValidator(ipChars, edit));
+        edit->setMaxLength(15);
+        commKeypad->registerEdit(edit);
+    }
+
+    // Finger scrolling for the list of networks
+    ui->listWidget_wifi->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+    QScroller::grabGesture(ui->listWidget_wifi->viewport(), QScroller::LeftMouseButtonGesture);
+
+    // Buttons
+    connect(ui->pushButtonCommunication_settings, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageCommunication_settings); });
+    connect(ui->pushButton_comm_home, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageDashboard); });
+    connect(ui->pushButton_comm_back, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageMenu); });
+    connect(ui->pushButton_comm_save, &QPushButton::clicked, this, [this]() { commApplyLan(); });
+
+    // Wi-Fi
+    connect(ui->checkBox_wifi_enable, &QCheckBox::clicked, this, [this](bool on)
+            {
+                commWifiBusy = true;
+                commWifiMessage = on ? "Switching Wi-Fi on..." : "Switching Wi-Fi off...";
+                commWifiMessageIsError = false;
+                commRenderWifi();
+                net->setWifiEnabled(on);
+            });
+    connect(ui->checkBox_wifi_show_password, &QCheckBox::toggled, this, [this](bool show)
+            { ui->lineEdit_wifi_password->setEchoMode(show ? QLineEdit::Normal : QLineEdit::Password); });
+    connect(ui->pushButton_wifi_scan, &QPushButton::clicked, this, [this]() { commStartScan(); });
+    connect(ui->listWidget_wifi, &QListWidget::currentItemChanged, this, [this](QListWidgetItem *, QListWidgetItem *)
+            {
+                ui->lineEdit_wifi_password->clear();
+                commRenderWifi();
+            });
+    connect(ui->pushButton_wifi_connect, &QPushButton::clicked, this, [this]()
+            {
+                QListWidgetItem *item = ui->listWidget_wifi->currentItem();
+                if (!item)
+                {
+                    commWifiMessage = "Select a network first.";
+                    commWifiMessageIsError = true;
+                    commRenderWifi();
+                    return;
+                }
+                const QString ssid = item->data(Qt::UserRole).toString();
+                const bool secured = item->data(Qt::UserRole + 1).toBool();
+                commWifiBusy = true;
+                commWifiMessage = QString("Connecting to %1 ...").arg(ssid);
+                commWifiMessageIsError = false;
+                commRenderWifi();
+                net->connectWifi(ssid, ui->lineEdit_wifi_password->text(), secured);
+            });
+
+    connect(net, &NetControl::wifiStateChanged, this, [this](const WifiState &state)
+            {
+                commWifiRefreshing = false;
+                commWifi = state;
+                commWifiKnown = true;
+                if (!state.radioEnabled)
+                    commScanned = false;                // scan again when it is switched on
+                commRenderWifi();
+                if (state.adapterPresent && state.radioEnabled && !commScanned && !commScanning && !commWifiBusy)
+                    commStartScan();
+            });
+    connect(net, &NetControl::wifiListReady, this, &MainWindow::commShowNetworks);
+
+    // LAN
+    connect(ui->radioButton_lan_dhcp, &QRadioButton::toggled, this, [this](bool) { commUpdateLanFields(); });
+    connect(net, &NetControl::lanStateChanged, this, &MainWindow::commShowLan);
+
+    connect(net, &NetControl::actionFinished, this, [this](const QString &action, bool ok, const QString &message)
+            {
+                if (action == "wifi-radio" || action == "wifi-connect")
+                {
+                    commWifiBusy = false;
+                    commWifiMessage = ok ? (action == "wifi-connect" ? QString("Connected.") : QString()) : message;
+                    commWifiMessageIsError = !ok;
+                    if (ok && action == "wifi-connect")
+                    {
+                        ui->lineEdit_wifi_password->clear();
+                        commStartScan();                // the list shows which network is in use
+                    }
+                    if (action == "wifi-radio")
+                        commScanned = false;
+                    commWifiRefreshing = true;
+                    net->refreshWifi();
+                    commRenderWifi();
+                }
+                else if (action == "lan-apply")
+                {
+                    commLanBusy = false;
+                    ui->pushButton_comm_save->setEnabled(true);
+                    commSetLanMessage(ok ? QString("Saved and applied.") : message, !ok);
+                    commLanRefreshing = true;
+                    net->refreshLan(true);              // show what the port really has now
+                }
+            });
+
+    // While the page is open, keep the state up to date
+    commTimer = new QTimer(this);
+    connect(commTimer, &QTimer::timeout, this, [this]()
+            {
+                if (!commWifiBusy && !commWifiRefreshing)
+                {
+                    commWifiRefreshing = true;
+                    net->refreshWifi();
+                }
+                if (!commLanBusy && !commLanRefreshing)
+                {
+                    commLanRefreshing = true;
+                    net->refreshLan(false);
+                }
+            });
+    connect(ui->stackedWidget, &QStackedWidget::currentChanged, this, [this](int)
+            {
+                if (ui->stackedWidget->currentWidget() == ui->pageCommunication_settings)
+                    commPageOpened();
+                else
+                    commTimer->stop();
+            });
+    commRenderWifi();
+    commUpdateLanFields();
+}
+
+void MainWindow::commPageOpened()
+{
+    commScanned = false;
+    commWifiMessage.clear();
+    commSetLanMessage(QString(), false);
+    commWifiRefreshing = commLanRefreshing = true;
+    net->refreshWifi();
+    net->refreshLan(true);
+    commTimer->start(4000);
+}
+
+void MainWindow::commStartScan()
+{
+    if (commScanning || !commWifi.radioEnabled)
+        return;
+    commScanned = true;
+    commScanning = true;
+    commRenderWifi();
+    net->scanWifi();
+}
+
+// The Wi-Fi state line, and which Wi-Fi controls can be used
+void MainWindow::commRenderWifi()
+{
+    QString state;
+    if (!commWifiKnown)
+        state = "Reading Wi-Fi state...";
+    else if (!commWifi.adapterPresent)
+        state = "No Wi-Fi adapter found (or NetworkManager is not available).";
+    else if (!commWifi.radioEnabled)
+        state = "Wi-Fi is switched off.";
+    else if (!commWifi.connection.isEmpty())
+        state = QString("Connected to %1  (IP address %2)").arg(commWifi.connection, commWifi.ip.isEmpty() ? QString("waiting...") : commWifi.ip);
+    else
+        state = commScanning ? "Not connected. Scanning..." : "Not connected.";
+
+    QString html = state.toHtmlEscaped();
+    if (!commWifiMessage.isEmpty())
+        html += QString("<br><span style=\"color:%1;\">%2</span>")
+                    .arg(commWifiMessageIsError ? "#e53935" : "#43a047", commWifiMessage.toHtmlEscaped());
+    ui->label_wifi_status->setText(html);
+
+    const bool adapter = commWifiKnown && commWifi.adapterPresent;
+    const bool on = adapter && commWifi.radioEnabled;
+    {
+        const QSignalBlocker blocker(ui->checkBox_wifi_enable);
+        if (!commWifiBusy)
+            ui->checkBox_wifi_enable->setChecked(on);
+    }
+    ui->checkBox_wifi_enable->setEnabled(adapter && !commWifiBusy);
+
+    QListWidgetItem *item = ui->listWidget_wifi->currentItem();
+    const bool secured = item && item->data(Qt::UserRole + 1).toBool();
+    ui->listWidget_wifi->setEnabled(on);
+    ui->pushButton_wifi_scan->setEnabled(on && !commScanning && !commWifiBusy);
+    ui->pushButton_wifi_connect->setEnabled(on && item && !commWifiBusy);
+    ui->lineEdit_wifi_password->setEnabled(on && item && secured && !commWifiBusy);
+    ui->checkBox_wifi_show_password->setEnabled(on);
+    if (!on)
+        ui->listWidget_wifi->clear();
+}
+
+void MainWindow::commShowNetworks(const QList<WifiNetwork> &networks, const QString &error)
+{
+    commScanning = false;
+    QString keepSelected;
+    if (QListWidgetItem *current = ui->listWidget_wifi->currentItem())
+        keepSelected = current->data(Qt::UserRole).toString();
+
+    {
+        const QSignalBlocker blocker(ui->listWidget_wifi);
+        ui->listWidget_wifi->clear();
+        for (const WifiNetwork &n : networks)
+        {
+            auto *item = new QListWidgetItem(QString("%1%2    %3 %    %4")
+                                                 .arg(n.ssid, n.inUse ? "  (connected)" : "")
+                                                 .arg(n.signal)
+                                                 .arg(n.secured ? "Secured" : "Open"));
+            item->setData(Qt::UserRole, n.ssid);
+            item->setData(Qt::UserRole + 1, n.secured);
+            ui->listWidget_wifi->addItem(item);
+            if (n.ssid == keepSelected)
+                ui->listWidget_wifi->setCurrentItem(item);
+        }
+    }
+    if (!error.isEmpty())
+    {
+        commWifiMessage = QString("Scan failed: %1").arg(error);
+        commWifiMessageIsError = true;
+    }
+    else if (networks.isEmpty())
+    {
+        commWifiMessage = "No networks found.";
+        commWifiMessageIsError = false;
+    }
+    else if (commWifiMessage.startsWith("Scan failed") || commWifiMessage.startsWith("No networks"))
+        commWifiMessage.clear();
+    commRenderWifi();
+}
+
+void MainWindow::commSetLanMessage(const QString &text, bool error)
+{
+    ui->label_lan_status->setText(text.isEmpty() ? QString()
+        : QString("<span style=\"color:%1;\">%2</span>").arg(error ? "#e53935" : "#43a047", text.toHtmlEscaped()));
+}
+
+// Static fields can be edited only with "Static IP address"; with DHCP they show what the port has
+void MainWindow::commUpdateLanFields()
+{
+    const bool staticMode = ui->radioButton_lan_static->isChecked();
+    const bool usable = commLan.present && !commLanBusy;
+    ui->radioButton_lan_dhcp->setEnabled(usable);
+    ui->radioButton_lan_static->setEnabled(usable);
+    ui->pushButton_comm_save->setEnabled(usable);
+    for (QLineEdit *edit : {ui->lineEdit_lan_ip, ui->lineEdit_lan_mask, ui->lineEdit_lan_gateway, ui->lineEdit_lan_dns})
+        edit->setEnabled(usable && staticMode);
+
+    if (!staticMode && commLan.present)
+    {
+        // DHCP: show what the port was given (not while one of the boxes is being used)
+        ui->lineEdit_lan_ip->setText(commLan.liveAddress);
+        ui->lineEdit_lan_mask->setText(commLan.livePrefix > 0 ? prefixToMask(commLan.livePrefix) : QString());
+        ui->lineEdit_lan_gateway->setText(commLan.liveGateway);
+        ui->lineEdit_lan_dns->setText(commLan.liveDns);
+    }
+}
+
+void MainWindow::commShowLan(const LanState &state)
+{
+    commLanRefreshing = false;
+    const bool first = !commLan.present && state.present;
+    const bool wasFull = state.full;
+    commLan.present = state.present;
+    commLan.device = state.device;
+    commLan.linkUp = state.linkUp;
+    commLan.liveAddress = state.liveAddress;
+    commLan.livePrefix = state.livePrefix;
+    commLan.liveGateway = state.liveGateway;
+    commLan.liveDns = state.liveDns;
+    if (state.full)
+        commLan = state;
+
+    if (!state.present)
+    {
+        ui->label_lan_current_ip->setText("--");
+        commSetLanMessage("No LAN port found (or NetworkManager is not available).", true);
+        commUpdateLanFields();
+        return;
+    }
+
+    // The address the port really has, whichever way it got it
+    QString current;
+    if (!state.liveAddress.isEmpty())
+        current = state.livePrefix > 0 ? QString("%1 / %2").arg(state.liveAddress).arg(state.livePrefix) : state.liveAddress;
+    else
+        current = state.linkUp ? "waiting for an address..." : "no cable";
+    ui->label_lan_current_ip->setText(current);
+
+    if (wasFull || first)
+    {
+        // The settings as they are stored: choose DHCP or static and fill in the static values
+        const bool staticMode = state.method == "manual";
+        {
+            const QSignalBlocker b1(ui->radioButton_lan_dhcp), b2(ui->radioButton_lan_static);
+            ui->radioButton_lan_static->setChecked(staticMode);
+            ui->radioButton_lan_dhcp->setChecked(!staticMode);
+        }
+        if (staticMode)
+        {
+            ui->lineEdit_lan_ip->setText(state.cfgAddress);
+            ui->lineEdit_lan_mask->setText(state.cfgPrefix > 0 ? prefixToMask(state.cfgPrefix) : QString());
+            ui->lineEdit_lan_gateway->setText(state.cfgGateway);
+            ui->lineEdit_lan_dns->setText(state.cfgDns);
+        }
+    }
+    commUpdateLanFields();
+}
+
+void MainWindow::commApplyLan()
+{
+    if (commLanBusy || !commLan.present)
+        return;
+
+    if (ui->radioButton_lan_dhcp->isChecked())
+    {
+        commLanBusy = true;
+        ui->pushButton_comm_save->setEnabled(false);
+        commSetLanMessage("Applying DHCP...", false);
+        net->applyLan(true, QString(), 0, QString(), QString());
+        return;
+    }
+
+    // Static: check everything before anything is changed
+    quint32 ip = 0, gateway = 0, dns = 0;
+    const QString ipText = ui->lineEdit_lan_ip->text().trimmed();
+    const QString gatewayText = ui->lineEdit_lan_gateway->text().trimmed();
+    const QString dnsText = ui->lineEdit_lan_dns->text().trimmed();
+    if (!parseIpv4(ipText, &ip) || ip == 0)
+    {
+        commSetLanMessage("The IP address is not valid.", true);
+        return;
+    }
+    const int prefix = maskToPrefix(ui->lineEdit_lan_mask->text());
+    if (prefix < 0)
+    {
+        commSetLanMessage("The subnet mask is not valid (for example 255.255.255.0).", true);
+        return;
+    }
+    const quint32 mask = 0xFFFFFFFFu << (32 - prefix);
+    if (!gatewayText.isEmpty())
+    {
+        if (!parseIpv4(gatewayText, &gateway))
+        {
+            commSetLanMessage("The gateway is not valid.", true);
+            return;
+        }
+        if ((gateway & mask) != (ip & mask))
+        {
+            commSetLanMessage("The gateway is not on the same network as the IP address.", true);
+            return;
+        }
+    }
+    if (!dnsText.isEmpty() && !parseIpv4(dnsText, &dns))
+    {
+        commSetLanMessage("The DNS server is not valid.", true);
+        return;
+    }
+
+    commLanBusy = true;
+    ui->pushButton_comm_save->setEnabled(false);
+    commSetLanMessage("Applying the static address...", false);
+    net->applyLan(false, ipText, prefix, gatewayText, dnsText);
 }

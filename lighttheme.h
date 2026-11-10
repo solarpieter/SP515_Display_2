@@ -96,6 +96,59 @@ QCheckBox::indicator:disabled {
     border-color: #D0D0D0;
 }
 
+/* Communication Settings page: text boxes and the list of Wi-Fi networks */
+QLineEdit#lineEdit_wifi_password,
+QLineEdit#lineEdit_lan_ip,
+QLineEdit#lineEdit_lan_mask,
+QLineEdit#lineEdit_lan_gateway,
+QLineEdit#lineEdit_lan_dns {
+    background-color: white;
+    color: black;
+    border: 2px solid #C0C0C0;
+    border-radius: 8px;
+    padding: 2px 8px;
+}
+
+QLineEdit#lineEdit_lan_ip:disabled,
+QLineEdit#lineEdit_lan_mask:disabled,
+QLineEdit#lineEdit_lan_gateway:disabled,
+QLineEdit#lineEdit_lan_dns:disabled {
+    color: #808080;
+}
+
+QListWidget#listWidget_wifi {
+    background-color: white;
+    color: black;
+    border: 2px solid #C0C0C0;
+    border-radius: 8px;
+    outline: 0;
+}
+
+QListWidget#listWidget_wifi::item {
+    min-height: 52px;
+    padding-left: 10px;
+}
+
+QListWidget#listWidget_wifi::item:selected {
+    background-color: #1E90FF;
+    color: white;
+}
+
+/* the two LAN choices: larger than the radio buttons on the Display page */
+QRadioButton#radioButton_lan_dhcp,
+QRadioButton#radioButton_lan_static {
+    font-size: 24px;
+    font-weight: normal;
+    spacing: 16px;
+}
+
+QRadioButton#radioButton_lan_dhcp::indicator,
+QRadioButton#radioButton_lan_static::indicator {
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+}
+
 /* General Labels */
 QLabel {
     background: transparent;
