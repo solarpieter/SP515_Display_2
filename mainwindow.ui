@@ -75,7 +75,7 @@
      <number>0</number>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>2</number>
     </property>
     <widget class="QWidget" name="pageDashboard">
      <property name="minimumSize">
@@ -1068,8 +1068,8 @@
       </property>
       <property name="iconSize">
        <size>
-        <width>48</width>
-        <height>48</height>
+        <width>80</width>
+        <height>80</height>
        </size>
       </property>
      </widget>
@@ -1429,17 +1429,317 @@
        </size>
       </property>
      </widget>
-     <widget class="QPushButton" name="pushButton_7">
+     <widget class="QPushButton" name="pushButton_start_boost">
       <property name="geometry">
        <rect>
-        <x>110</x>
-        <y>40</y>
-        <width>126</width>
-        <height>37</height>
+        <x>100</x>
+        <y>170</y>
+        <width>300</width>
+        <height>71</height>
        </rect>
       </property>
+      <property name="font">
+       <font>
+        <pointsize>20</pointsize>
+        <bold>true</bold>
+       </font>
+      </property>
       <property name="text">
-       <string>PushButton</string>
+       <string>Start Boost</string>
+      </property>
+      <property name="icon">
+       <iconset theme="QIcon::ThemeIcon::MediaPlaybackStart"/>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>80</width>
+        <height>80</height>
+       </size>
+      </property>
+     </widget>
+     <widget class="QFrame" name="frame_battery_voltage_4">
+      <property name="geometry">
+       <rect>
+        <x>70</x>
+        <y>10</y>
+        <width>310</width>
+        <height>119</height>
+       </rect>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::Shape::Box</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Shadow::Raised</enum>
+      </property>
+      <property name="lineWidth">
+       <number>2</number>
+      </property>
+      <widget class="QLabel" name="label_battery_voltage_4">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>10</y>
+         <width>261</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>18</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="lineWidth">
+        <number>0</number>
+       </property>
+       <property name="text">
+        <string>BATTERY VOLTAGE</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_batt_volt_value_4">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>60</y>
+         <width>291</width>
+         <height>51</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>30</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::Shape::NoFrame</enum>
+       </property>
+       <property name="frameShadow">
+        <enum>QFrame::Shadow::Plain</enum>
+       </property>
+       <property name="lineWidth">
+        <number>0</number>
+       </property>
+       <property name="text">
+        <string>121.2 V</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignCenter</set>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QFrame" name="frame_battery_current_4">
+      <property name="geometry">
+       <rect>
+        <x>400</x>
+        <y>10</y>
+        <width>311</width>
+        <height>119</height>
+       </rect>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::Shape::Box</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Shadow::Raised</enum>
+      </property>
+      <property name="lineWidth">
+       <number>2</number>
+      </property>
+      <widget class="QLabel" name="label_battery_current_4">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>10</y>
+         <width>231</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>18</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>BATTERY CURRENT</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_batt_current_value_4">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>60</y>
+         <width>291</width>
+         <height>51</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>30</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>21.5 A</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignCenter</set>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QFrame" name="frame_battery_mode_2">
+      <property name="geometry">
+       <rect>
+        <x>730</x>
+        <y>10</y>
+        <width>310</width>
+        <height>119</height>
+       </rect>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::Shape::Box</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Shadow::Raised</enum>
+      </property>
+      <property name="lineWidth">
+       <number>2</number>
+      </property>
+      <widget class="QLabel" name="label_battery_mode_3">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>231</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>18</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>BATTERY MODE</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_batt_mode_value_3">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>60</y>
+         <width>291</width>
+         <height>51</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>30</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>EQUALIZE</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignCenter</set>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QPushButton" name="pushButton_start_equalize">
+      <property name="geometry">
+       <rect>
+        <x>710</x>
+        <y>170</y>
+        <width>300</width>
+        <height>71</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>20</pointsize>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Start Equalize</string>
+      </property>
+      <property name="icon">
+       <iconset theme="QIcon::ThemeIcon::MediaPlaybackStart"/>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>80</width>
+        <height>80</height>
+       </size>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_start_initialize">
+      <property name="geometry">
+       <rect>
+        <x>100</x>
+        <y>330</y>
+        <width>300</width>
+        <height>71</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>20</pointsize>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Start Initialize</string>
+      </property>
+      <property name="icon">
+       <iconset theme="QIcon::ThemeIcon::MediaPlaybackStart"/>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>80</width>
+        <height>80</height>
+       </size>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_start_battery_test">
+      <property name="geometry">
+       <rect>
+        <x>710</x>
+        <y>330</y>
+        <width>300</width>
+        <height>71</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>20</pointsize>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Start Battery Test</string>
+      </property>
+      <property name="icon">
+       <iconset theme="QIcon::ThemeIcon::MediaPlaybackStart"/>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>80</width>
+        <height>80</height>
+       </size>
       </property>
      </widget>
     </widget>
@@ -1749,6 +2049,9 @@
       <property name="alignment">
        <set>Qt::AlignmentFlag::AlignCenter</set>
       </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+      </property>
       <property name="maximum">
        <double>999.990000000000009</double>
       </property>
@@ -1769,6 +2072,9 @@
       </property>
       <property name="alignment">
        <set>Qt::AlignmentFlag::AlignCenter</set>
+      </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
       </property>
       <property name="maximum">
        <double>999.990000000000009</double>
@@ -1876,6 +2182,9 @@
         <pointsize>20</pointsize>
        </font>
       </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+      </property>
       <property name="maximum">
        <number>9999</number>
       </property>
@@ -1911,6 +2220,9 @@
        <font>
         <pointsize>20</pointsize>
        </font>
+      </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
       </property>
       <property name="maximum">
        <number>999</number>
@@ -2014,6 +2326,9 @@
         <pointsize>20</pointsize>
        </font>
       </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+      </property>
      </widget>
      <widget class="QDoubleSpinBox" name="doubleSpinBox_recharge_rate">
       <property name="geometry">
@@ -2028,6 +2343,9 @@
        <font>
         <pointsize>20</pointsize>
        </font>
+      </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
       </property>
      </widget>
      <widget class="QLabel" name="label_recharge_rate">
@@ -2080,6 +2398,9 @@
         <pointsize>20</pointsize>
        </font>
       </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+      </property>
      </widget>
      <widget class="QLabel" name="label_temp_comp">
       <property name="geometry">
@@ -2116,6 +2437,9 @@
         <pointsize>20</pointsize>
        </font>
       </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+      </property>
      </widget>
      <widget class="QLabel" name="label_float_v_cell">
       <property name="geometry">
@@ -2148,6 +2472,9 @@
        <font>
         <pointsize>20</pointsize>
        </font>
+      </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
       </property>
      </widget>
      <widget class="QLabel" name="label_boost_v_cell">
@@ -2182,6 +2509,9 @@
         <pointsize>20</pointsize>
        </font>
       </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+      </property>
      </widget>
      <widget class="QLabel" name="label_equalize_v_cell">
       <property name="geometry">
@@ -2215,6 +2545,9 @@
         <pointsize>20</pointsize>
        </font>
       </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+      </property>
      </widget>
      <widget class="QLabel" name="label_initialize_v_cell">
       <property name="geometry">
@@ -2247,6 +2580,9 @@
        <font>
         <pointsize>20</pointsize>
        </font>
+      </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
       </property>
      </widget>
      <widget class="QLabel" name="label_battery_error">
@@ -2518,6 +2854,9 @@
         <pointsize>18</pointsize>
        </font>
       </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+      </property>
      </widget>
      <widget class="QLabel" name="label_boost_curr_lim">
       <property name="geometry">
@@ -2554,6 +2893,9 @@
         <pointsize>18</pointsize>
        </font>
       </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+      </property>
      </widget>
      <widget class="QLabel" name="label_boost_duration">
       <property name="geometry">
@@ -2587,6 +2929,9 @@
         <pointsize>18</pointsize>
        </font>
       </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+      </property>
      </widget>
      <widget class="QLabel" name="label_boost_overide_time">
       <property name="geometry">
@@ -2619,6 +2964,9 @@
        <font>
         <pointsize>18</pointsize>
        </font>
+      </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
       </property>
      </widget>
      <widget class="QLabel" name="label_boost_repeat">
@@ -2655,6 +3003,9 @@
        <font>
         <pointsize>18</pointsize>
        </font>
+      </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
       </property>
      </widget>
      <widget class="QPushButton" name="pushButton_boost_home">
@@ -2760,6 +3111,9 @@
         <pointsize>18</pointsize>
        </font>
       </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+      </property>
      </widget>
      <widget class="QLabel" name="label_boost_function">
       <property name="geometry">
@@ -2847,7 +3201,7 @@
       <property name="geometry">
        <rect>
         <x>30</x>
-        <y>240</y>
+        <y>300</y>
         <width>141</width>
         <height>41</height>
        </rect>
@@ -2865,7 +3219,7 @@
       <property name="geometry">
        <rect>
         <x>240</x>
-        <y>240</y>
+        <y>300</y>
         <width>171</width>
         <height>41</height>
        </rect>
@@ -2875,12 +3229,15 @@
         <pointsize>18</pointsize>
        </font>
       </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+      </property>
      </widget>
      <widget class="QLabel" name="label_equalize_curr_lim">
       <property name="geometry">
        <rect>
         <x>30</x>
-        <y>300</y>
+        <y>360</y>
         <width>181</width>
         <height>81</height>
        </rect>
@@ -2901,7 +3258,7 @@
       <property name="geometry">
        <rect>
         <x>240</x>
-        <y>320</y>
+        <y>380</y>
         <width>171</width>
         <height>41</height>
        </rect>
@@ -2911,12 +3268,15 @@
         <pointsize>18</pointsize>
        </font>
       </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+      </property>
      </widget>
      <widget class="QLabel" name="label_equalize_duration">
       <property name="geometry">
        <rect>
         <x>520</x>
-        <y>240</y>
+        <y>300</y>
         <width>201</width>
         <height>41</height>
        </rect>
@@ -2934,7 +3294,7 @@
       <property name="geometry">
        <rect>
         <x>730</x>
-        <y>240</y>
+        <y>300</y>
         <width>171</width>
         <height>41</height>
        </rect>
@@ -2944,38 +3304,8 @@
         <pointsize>18</pointsize>
        </font>
       </property>
-     </widget>
-     <widget class="QLabel" name="label_equalize_overide_time">
-      <property name="geometry">
-       <rect>
-        <x>520</x>
-        <y>330</y>
-        <width>201</width>
-        <height>41</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>18</pointsize>
-       </font>
-      </property>
-      <property name="text">
-       <string>Override Timer (h)</string>
-      </property>
-     </widget>
-     <widget class="QSpinBox" name="spinBox_equalize_overide_time">
-      <property name="geometry">
-       <rect>
-        <x>730</x>
-        <y>330</y>
-        <width>171</width>
-        <height>41</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>18</pointsize>
-       </font>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
       </property>
      </widget>
      <widget class="QPushButton" name="pushButton_equalize_home">
@@ -3113,6 +3443,46 @@
        <bool>true</bool>
       </property>
      </widget>
+     <widget class="QLabel" name="label_load_on_equalize">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>200</y>
+        <width>121</width>
+        <height>61</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>18</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>Load On Equalize</string>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="checkBox_load_on_equalize">
+      <property name="geometry">
+       <rect>
+        <x>230</x>
+        <y>200</y>
+        <width>300</width>
+        <height>50</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>20</pointsize>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>No</string>
+      </property>
+     </widget>
     </widget>
     <widget class="QWidget" name="pageInitialize_settings">
      <widget class="QLabel" name="label_initialize_title">
@@ -3166,6 +3536,9 @@
         <pointsize>18</pointsize>
        </font>
       </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+      </property>
      </widget>
      <widget class="QLabel" name="label_initialize_curr_lim">
       <property name="geometry">
@@ -3202,6 +3575,9 @@
         <pointsize>18</pointsize>
        </font>
       </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+      </property>
      </widget>
      <widget class="QLabel" name="label_initialize_duration">
       <property name="geometry">
@@ -3235,38 +3611,8 @@
         <pointsize>18</pointsize>
        </font>
       </property>
-     </widget>
-     <widget class="QLabel" name="label_initialize_overide_time">
-      <property name="geometry">
-       <rect>
-        <x>520</x>
-        <y>330</y>
-        <width>201</width>
-        <height>41</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>18</pointsize>
-       </font>
-      </property>
-      <property name="text">
-       <string>Override Timer (h)</string>
-      </property>
-     </widget>
-     <widget class="QSpinBox" name="spinBox_initialize_overide_time">
-      <property name="geometry">
-       <rect>
-        <x>730</x>
-        <y>330</y>
-        <width>171</width>
-        <height>41</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>18</pointsize>
-       </font>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
       </property>
      </widget>
      <widget class="QPushButton" name="pushButton_initialize_home">
@@ -3566,13 +3912,13 @@
        </font>
       </property>
       <property name="text">
-       <string></string>
-      </property>
-      <property name="wordWrap">
-       <bool>true</bool>
+       <string/>
       </property>
       <property name="alignment">
        <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
       </property>
      </widget>
      <widget class="QLabel" name="label_lan_header">
@@ -3833,13 +4179,13 @@
        </font>
       </property>
       <property name="text">
-       <string></string>
-      </property>
-      <property name="wordWrap">
-       <bool>true</bool>
+       <string/>
       </property>
       <property name="alignment">
        <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
       </property>
      </widget>
      <widget class="QPushButton" name="pushButton_comm_home">
@@ -4332,6 +4678,9 @@
        <property name="alignment">
         <set>Qt::AlignmentFlag::AlignCenter</set>
        </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+       </property>
        <property name="specialValueText">
         <string>OFF</string>
        </property>
@@ -4381,6 +4730,9 @@
        <property name="alignment">
         <set>Qt::AlignmentFlag::AlignCenter</set>
        </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+       </property>
        <property name="specialValueText">
         <string>OFF</string>
        </property>
@@ -4416,7 +4768,7 @@
         <second>0</second>
         <year>2026</year>
         <month>1</month>
-        <day>16</day>
+        <day>15</day>
        </datetime>
       </property>
       <property name="displayFormat">
@@ -5121,12 +5473,12 @@
         <x>30</x>
         <y>20</y>
         <width>221</width>
-        <height>49</height>
+        <height>60</height>
        </rect>
       </property>
       <property name="font">
        <font>
-        <pointsize>30</pointsize>
+        <pointsize>34</pointsize>
        </font>
       </property>
       <property name="text">
@@ -5137,14 +5489,14 @@
       <property name="geometry">
        <rect>
         <x>30</x>
-        <y>120</y>
+        <y>140</y>
         <width>221</width>
-        <height>49</height>
+        <height>60</height>
        </rect>
       </property>
       <property name="font">
        <font>
-        <pointsize>30</pointsize>
+        <pointsize>34</pointsize>
        </font>
       </property>
       <property name="text">
@@ -5155,14 +5507,14 @@
       <property name="geometry">
        <rect>
         <x>30</x>
-        <y>220</y>
+        <y>260</y>
         <width>221</width>
-        <height>49</height>
+        <height>60</height>
        </rect>
       </property>
       <property name="font">
        <font>
-        <pointsize>30</pointsize>
+        <pointsize>34</pointsize>
        </font>
       </property>
       <property name="text">
@@ -5173,14 +5525,14 @@
       <property name="geometry">
        <rect>
         <x>30</x>
-        <y>320</y>
+        <y>380</y>
         <width>221</width>
-        <height>49</height>
+        <height>60</height>
        </rect>
       </property>
       <property name="font">
        <font>
-        <pointsize>30</pointsize>
+        <pointsize>34</pointsize>
        </font>
       </property>
       <property name="text">
@@ -5190,68 +5542,80 @@
      <widget class="QDoubleSpinBox" name="doubleSpinBox_voltagekp">
       <property name="geometry">
        <rect>
-        <x>260</x>
+        <x>270</x>
         <y>20</y>
         <width>300</width>
-        <height>49</height>
+        <height>60</height>
        </rect>
       </property>
       <property name="font">
        <font>
-        <pointsize>30</pointsize>
+        <pointsize>36</pointsize>
        </font>
+      </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
       </property>
      </widget>
      <widget class="QDoubleSpinBox" name="doubleSpinBox_voltageki">
       <property name="geometry">
        <rect>
-        <x>260</x>
-        <y>120</y>
+        <x>270</x>
+        <y>140</y>
         <width>300</width>
-        <height>49</height>
+        <height>60</height>
        </rect>
       </property>
       <property name="font">
        <font>
-        <pointsize>30</pointsize>
+        <pointsize>36</pointsize>
        </font>
+      </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
       </property>
      </widget>
      <widget class="QDoubleSpinBox" name="doubleSpinBox_currentkp">
       <property name="geometry">
        <rect>
-        <x>260</x>
-        <y>220</y>
+        <x>270</x>
+        <y>260</y>
         <width>300</width>
-        <height>49</height>
+        <height>60</height>
        </rect>
       </property>
       <property name="font">
        <font>
-        <pointsize>30</pointsize>
+        <pointsize>36</pointsize>
        </font>
+      </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
       </property>
      </widget>
      <widget class="QDoubleSpinBox" name="doubleSpinBox_currentki">
       <property name="geometry">
        <rect>
-        <x>260</x>
-        <y>320</y>
+        <x>270</x>
+        <y>380</y>
         <width>300</width>
-        <height>49</height>
+        <height>60</height>
        </rect>
       </property>
       <property name="font">
        <font>
-        <pointsize>30</pointsize>
+        <pointsize>36</pointsize>
        </font>
+      </property>
+      <property name="buttonSymbols">
+       <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
       </property>
      </widget>
      <widget class="QLabel" name="label_rectifier_voltage4">
       <property name="geometry">
        <rect>
         <x>680</x>
-        <y>70</y>
+        <y>80</y>
         <width>301</width>
         <height>49</height>
        </rect>
@@ -5269,7 +5633,7 @@
       <property name="geometry">
        <rect>
         <x>1000</x>
-        <y>70</y>
+        <y>80</y>
         <width>250</width>
         <height>49</height>
        </rect>
@@ -5287,7 +5651,7 @@
       <property name="geometry">
        <rect>
         <x>680</x>
-        <y>280</y>
+        <y>320</y>
         <width>301</width>
         <height>49</height>
        </rect>
@@ -5305,7 +5669,7 @@
       <property name="geometry">
        <rect>
         <x>1000</x>
-        <y>280</y>
+        <y>320</y>
         <width>250</width>
         <height>49</height>
        </rect>
