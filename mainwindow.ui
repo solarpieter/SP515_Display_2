@@ -75,7 +75,7 @@
      <number>0</number>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="pageDashboard">
      <property name="minimumSize">
@@ -856,7 +856,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton">
+        <widget class="QPushButton" name="pushButton_lithium_batt_disp">
          <property name="minimumSize">
           <size>
            <width>0</width>
@@ -1129,7 +1129,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButtonA2">
+        <widget class="QPushButton" name="pushButton_battery_modes">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -1138,12 +1138,12 @@
          </property>
          <property name="font">
           <font>
-           <pointsize>18</pointsize>
+           <pointsize>24</pointsize>
            <bold>true</bold>
           </font>
          </property>
          <property name="text">
-          <string/>
+          <string>Battery Modes</string>
          </property>
         </widget>
        </item>
@@ -2801,6 +2801,19 @@
        <string>Battery Test Settings</string>
       </property>
      </widget>
+     <widget class="QPushButton" name="pushButton_lithium_batt">
+      <property name="geometry">
+       <rect>
+        <x>720</x>
+        <y>610</y>
+        <width>205</width>
+        <height>100</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Lithium</string>
+      </property>
+     </widget>
     </widget>
     <widget class="QWidget" name="pageBoost_settings">
      <widget class="QLabel" name="label_boost_title">
@@ -4271,6 +4284,7 @@
      </widget>
     </widget>
     <widget class="QWidget" name="pageAlarm_settings"/>
+    <widget class="QWidget" name="pagelithium_batt"/>
     <widget class="QWidget" name="pageDisplay_settings">
      <widget class="QPushButton" name="pushButtonDisplaySave">
       <property name="geometry">
@@ -4768,7 +4782,7 @@
         <second>0</second>
         <year>2026</year>
         <month>1</month>
-        <day>15</day>
+        <day>14</day>
        </datetime>
       </property>
       <property name="displayFormat">
