@@ -66,6 +66,8 @@ private slots:
 
     void on_btnChargerEnable_clicked(bool checked);
 
+    void on_btnChargerEnable_pid_clicked(bool checked);
+
     void on_pushButton_Enable_home_clicked();
 
     void on_pushButtonChargerenabledisable_clicked();
@@ -173,6 +175,14 @@ private:
     int statusFailures = 0;                         // status requests in a row that got no answer
     void requestChargerState(bool on);              // ask the SP515 to switch the charger OFF (after the user said Yes)
     bool chargerCommandPending = false;
+    // The PID Settings page has its own charger switch that works at once, without the Yes / No question.
+    // Its results are shown next to the switch instead of in pop-ups.
+    bool chargerImmediate = false;
+    QString chargerSetpointText;                    // "131.10 V, 420.0 A" of the ON request that was sent
+    int pidChargerMessageSerial = 0;
+    void setChargerSwitchesEnabled(bool enabled);   // both switches (Enable / Disable page and PID page)
+    void setPidChargerMessage(const QString &text, int level);      // level: 0 neutral, 1 good, 2 error
+    void reportChargerIssue(const QString &text);   // a pop-up, or the PID page message when started from there
     bool chargerPendingOn = false;
     // Switching ON: the voltage and current limit are worked out from the SP515's own float and battery
     // settings, read at that moment: voltage = float V/Cell x cells per string, current limit = the

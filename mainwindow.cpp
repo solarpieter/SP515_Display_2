@@ -314,12 +314,17 @@ MainWindow::MainWindow(QWidget *parent)
                 {
                     // The SP515's answer to the ON / OFF request
                     chargerCommandPending = false;
-                    ui->btnChargerEnable->setEnabled(chargerStateKnown);
+                    setChargerSwitchesEnabled(chargerStateKnown);
                     if (ok)
+                    {
                         setChargerState(chargerPendingOn);          // confirmed: the switch moves
+                        if (chargerImmediate)
+                            setPidChargerMessage(chargerPendingOn ? QString("Charger ON  (%1)").arg(chargerSetpointText)
+                                                                  : QString("Charger OFF"), 1);
+                    }
                     else
-                        showMessageBox("Charger", QString("The charger was NOT switched %1:\n%2")
-                                                      .arg(chargerPendingOn ? "ON" : "OFF", message));
+                        reportChargerIssue(QString("The charger was NOT switched %1:\n%2")
+                                               .arg(chargerPendingOn ? "ON" : "OFF", message));
                     return;
                 }
 
@@ -543,6 +548,7 @@ void MainWindow::on_btnChargerEnable_clicked(bool checked)
 
     // The button has just flipped itself. Put it back and ask first: it only changes if the answer is Yes.
     ui->btnChargerEnable->setChecked(!checked);
+    chargerImmediate = false;                       // this page asks first and shows pop-ups
 
     if (checked)
     {
@@ -565,6 +571,62 @@ void MainWindow::on_btnChargerEnable_clicked(bool checked)
     box->open();                                    // does not block the display
 }
 
+// The PID Settings page switch: no question, the request goes out at once. As on the other page, the
+// switch only moves when the SP515 has confirmed it, and the result is shown next to it.
+void MainWindow::on_btnChargerEnable_pid_clicked(bool checked)
+{
+    // De-bounce: a second press within 400 ms is ignored
+    if (chargerClickTimer.isValid() && chargerClickTimer.elapsed() < 400)
+    {
+        ui->btnChargerEnable_pid->setChecked(!checked);
+        return;
+    }
+    chargerClickTimer.restart();
+    ui->btnChargerEnable_pid->setChecked(!checked);     // it moves when the SP515 has answered
+    if (chargerCommandPending)
+        return;
+
+    chargerImmediate = true;
+    setPidChargerMessage(checked ? "Switching ON..." : "Switching OFF...", 0);
+    if (checked)
+        beginChargerOn();                           // reads the float settings, then sends
+    else
+        requestChargerState(false);
+}
+
+void MainWindow::setChargerSwitchesEnabled(bool enabled)
+{
+    ui->btnChargerEnable->setEnabled(enabled);
+    ui->btnChargerEnable_pid->setEnabled(enabled);
+}
+
+// The text next to the PID page switch. A good result fades after a few seconds; an error stays.
+void MainWindow::setPidChargerMessage(const QString &text, int level)
+{
+    const char *color = level == 1 ? "#43a047" : (level == 2 ? "#e53935" : "");
+    ui->label_pid_charger_status->setStyleSheet(*color ? QString("color: %1;").arg(color) : QString());
+    ui->label_pid_charger_status->setText(text);
+    const int serial = ++pidChargerMessageSerial;
+    if (level == 1)
+        QTimer::singleShot(6000, this, [this, serial]()
+                           {
+                               if (serial == pidChargerMessageSerial)
+                                   ui->label_pid_charger_status->clear();
+                           });
+}
+
+void MainWindow::reportChargerIssue(const QString &text)
+{
+    if (chargerImmediate)
+    {
+        QString oneLine = text;
+        oneLine.replace('\n', ' ');
+        setPidChargerMessage(oneLine, 2);
+    }
+    else
+        showMessageBox("Charger", text);
+}
+
 // Asks the SP515 to switch the charger OFF (0 V, 0 A). The switch only moves when the SP515 has confirmed it.
 void MainWindow::requestChargerState(bool on)
 {
@@ -573,7 +635,7 @@ void MainWindow::requestChargerState(bool on)
 
     chargerCommandPending = true;
     chargerPendingOn = on;
-    ui->btnChargerEnable->setEnabled(false);        // no second press while we wait for the answer
+    setChargerSwitchesEnabled(false);               // no second press while we wait for the answer
 
     rs485->setChargerSetpoint(on, 0.0f, 0.0f);
 }
@@ -587,7 +649,7 @@ void MainWindow::releaseChargerPending()
 {
     chargerAwaitFloat = chargerAwaitBattery = false;
     chargerCommandPending = false;
-    ui->btnChargerEnable->setEnabled(chargerStateKnown);        // the next status reading sets the switch
+    setChargerSwitchesEnabled(chargerStateKnown);               // the next status reading sets the switch
 }
 
 void MainWindow::beginChargerOn()
@@ -596,7 +658,7 @@ void MainWindow::beginChargerOn()
         return;
     chargerCommandPending = true;                   // the switch is left alone until this is finished
     chargerPendingOn = true;
-    ui->btnChargerEnable->setEnabled(false);
+    setChargerSwitchesEnabled(false);
     chargerFloatRaw.clear();
     chargerBatteryRaw.clear();
     chargerAwaitFloat = chargerAwaitBattery = true;
@@ -637,8 +699,8 @@ bool MainWindow::handleChargerOnCommandFinished(quint16 command, bool ok, const 
     const QString reason = status == 3 ? QString("No answer from the SP515")
                          : (status == 0 ? QString("No answer from the daemon") : message);
     releaseChargerPending();
-    showMessageBox("Charger", QString("The charger was NOT switched ON.\nThe %1 could not be read from the SP515:\n%2")
-                                  .arg(isFloat ? "float settings" : "battery settings", reason));
+    reportChargerIssue(QString("The charger was NOT switched ON.\nThe %1 could not be read from the SP515:\n%2")
+                           .arg(isFloat ? "float settings" : "battery settings", reason));
     return true;
 }
 
@@ -647,7 +709,7 @@ void MainWindow::askChargerOn()
     if (chargerFloatRaw.size() != 8 || chargerBatteryRaw.size() != 7)
     {
         releaseChargerPending();
-        showMessageBox("Charger", "The charger was NOT switched ON.\nThe SP515 sent settings in an unexpected format.");
+        reportChargerIssue("The charger was NOT switched ON.\nThe SP515 sent settings in an unexpected format.");
         return;
     }
 
@@ -660,8 +722,15 @@ void MainWindow::askChargerOn()
     if (!std::isfinite(volts) || !std::isfinite(amps) || volts <= 0.0f || amps <= 0.0f)
     {
         releaseChargerPending();
-        showMessageBox("Charger", "The charger was NOT switched ON.\nThe float V/Cell, the cells per string or the "
-                                  "recharge rate on the SP515 is zero.\nSet them on the Battery Settings page first.");
+        reportChargerIssue("The charger was NOT switched ON.\nThe float V/Cell, the cells per string or the "
+                           "recharge rate on the SP515 is zero.\nSet them on the Battery Settings page first.");
+        return;
+    }
+
+    chargerSetpointText = QString("%1 V, %2 A").arg(double(volts), 0, 'f', 2).arg(double(amps), 0, 'f', 1);
+    if (chargerImmediate)
+    {
+        rs485->setChargerSetpoint(true, volts, amps);       // no question: the answer arrives with SetChargeSetpoint
         return;
     }
 
@@ -693,7 +762,7 @@ void MainWindow::showChargerFromSp515(bool enabled)
     chargerStateKnown = true;
     if (chargerCommandPending)
         return;
-    ui->btnChargerEnable->setEnabled(true);
+    setChargerSwitchesEnabled(true);
     setChargerState(enabled);
 }
 
@@ -703,26 +772,20 @@ void MainWindow::setChargerUnknown()
     chargerStateKnown = false;
     if (chargerCommandPending)
         return;
-    ui->btnChargerEnable->setEnabled(false);
-    ui->btnChargerEnable->setChecked(false);
-    ui->btnChargerEnable->setText("CHARGER --");
+    setChargerSwitchesEnabled(false);
+    for (ToggleSwitch *sw : {ui->btnChargerEnable, ui->btnChargerEnable_pid})
+    {
+        sw->setChecked(false);
+        sw->setText("CHARGER --");
+    }
 }
 
 void MainWindow::setChargerState(bool on)
 {
-    ui->btnChargerEnable->setChecked(on);
-
-    if (on)
+    for (ToggleSwitch *sw : {ui->btnChargerEnable, ui->btnChargerEnable_pid})
     {
-        ui->btnChargerEnable->setText("CHARGER ON");
-
-        // Enable charger
-    }
-    else
-    {
-        ui->btnChargerEnable->setText("CHARGER OFF");
-
-        // Disable charger
+        sw->setChecked(on);
+        sw->setText(on ? "CHARGER ON" : "CHARGER OFF");
     }
 }
 
