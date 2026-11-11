@@ -33,6 +33,14 @@ void Rs485Client::requestAnalogueInputs()
     enqueue(GetAnalogueInputs, QByteArray());
 }
 
+void Rs485Client::requestBatteryType()
+{
+    if (m_typePending)
+        return;
+    m_typePending = true;
+    enqueue(GetBatteryConfig, QByteArray(), 0, true);
+}
+
 void Rs485Client::requestStatus()
 {
     if (m_statusPending)
@@ -89,11 +97,12 @@ void Rs485Client::sendCommand(quint16 command, const QByteArray &payload, int ti
     enqueue(command, payload, timeoutMs);
 }
 
-void Rs485Client::enqueue(quint16 command, const QByteArray &payload, int timeoutMs)
+void Rs485Client::enqueue(quint16 command, const QByteArray &payload, int timeoutMs, bool quiet)
 {
     Request r;
     r.command = command;
     r.timeoutMs = timeoutMs;
+    r.quiet = quiet;
     r.transactionId = m_nextTransactionId++;
     if (m_nextTransactionId == 0)
         m_nextTransactionId = 1;
@@ -206,6 +215,16 @@ void Rs485Client::finishRequest(bool ok, const QString &message, const QByteArra
         m_alarmsPending = false;
     if (done.command == GetStatus)
         m_statusPending = false;
+
+    if (done.quiet) {
+        m_typePending = false;
+        if (ok && payload.size() == 7)
+            emit batteryTypeReceived(quint8(payload.at(0)));
+        else
+            emit batteryTypeFailed();
+        QTimer::singleShot(0, this, &Rs485Client::startNext);
+        return;
+    }
 
     if (ok) {
         QDataStream in(payload);

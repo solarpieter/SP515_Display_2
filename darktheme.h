@@ -199,6 +199,13 @@ QPushButton:hover {
     background-color: #25E4F7;
 }
 
+/* a button that cannot be used right now */
+QPushButton:disabled {
+    background-color: #5B7388;
+    border: 2px solid #4A6070;
+    color: #A8B8C4;
+}
+
 QPushButton:pressed {
     background-color: #00A0B0;
 }

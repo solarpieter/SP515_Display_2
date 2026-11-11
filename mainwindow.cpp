@@ -224,6 +224,7 @@ MainWindow::MainWindow(QWidget *parent)
                 }
                 setSystemInfo("RECTIFIER --", nullptr, "No link to the daemon");
                 setChargerUnknown();
+                setBatteryTypeFromSp515(-1);
                 showAlarmState(false, false);
             });
 
@@ -341,6 +342,7 @@ MainWindow::MainWindow(QWidget *parent)
     setupPidPage();
     setupModePages();
     setupCommPage();
+    setupLithiumPage();
 
     // Numbers are typed on the numeric keypad; the small up / down arrows on the spin boxes are too small to use.
     // (Date and time boxes keep theirs: they step through day, month, hour and so on.)
@@ -358,6 +360,8 @@ MainWindow::MainWindow(QWidget *parent)
                     rs485->requestAlarms();         // alarms every second
                 else
                     rs485->requestStatus();         // and the SP515 status every second
+                if (pollCount % 10 == 1)
+                    rs485->requestBatteryType();    // and which battery type is selected, every 5 s
             });
     pollTimer->start(500);
 }
@@ -1393,6 +1397,7 @@ void MainWindow::handleBatteryReply(quint16 command, const QByteArray &payload)
             if (block == BlockBattery)
             {
                 const quint8 type = quint8(payload.at(0));
+                setBatteryTypeFromSp515(type);
                 int index = ui->comboBox_battery_type->currentIndex();
                 // The SP515 gives the chemistry only. Keep the chosen entry if it already has that
                 // chemistry, otherwise pick the first entry of that chemistry (none for "undefined").
@@ -1497,7 +1502,10 @@ bool MainWindow::handleBatteryCommandFinished(quint16 command, bool ok, const QS
                     updateRechargeRateBox();
                 }
                 else if (block == BlockBattery)
+                {
                     updateRechargeRateBox();                // capacity or strings may have changed
+                    setBatteryTypeFromSp515(quint8(batteryBlocks[block].raw.at(0)));
+                }
             }
             else
             {
@@ -2642,4 +2650,55 @@ void MainWindow::commApplyLan()
     ui->pushButton_comm_save->setEnabled(false);
     commSetLanMessage("Applying the static address...", false);
     net->applyLan(false, ipText, prefix, gatewayText, dnsText);
+}
+
+
+// ---- Lithium battery page ----------------------------------------------------
+// The page (and the two buttons that open it: the battery icon on the dashboard and the Lithium button on
+// Battery Settings) can only be used while the SP515 has a lithium battery selected. The battery type is
+// read from the SP515 every 5 s, so another display or a change on the board is noticed too.
+
+void MainWindow::setupLithiumPage()
+{
+    connect(ui->pushButton_lithium_batt_disp, &QPushButton::clicked, this, [this]() { openLithiumPage(); });
+    connect(ui->pushButton_lithium_batt, &QPushButton::clicked, this, [this]() { openLithiumPage(); });
+    connect(ui->pushButton_lithium_home, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageDashboard); });
+    connect(ui->pushButton_lithium_back, &QPushButton::clicked, this, [this]()
+            { ui->stackedWidget->setCurrentWidget(lithiumReturnPage ? lithiumReturnPage : ui->pageBattery_settings); });
+
+    // The Battery Modes button on the Menu
+    connect(ui->pushButton_battery_modes, &QPushButton::clicked, this, [this]() { ui->stackedWidget->setCurrentWidget(ui->pageBatteryModes); });
+
+    connect(rs485, &Rs485Client::batteryTypeReceived, this, [this](quint8 type) { setBatteryTypeFromSp515(type); });
+    // A missed reading keeps the last known type. It is cleared when the daemon cannot be reached (see the failed() handler).
+
+    updateLithiumAccess();                          // greyed out until the type is known
+    rs485->requestBatteryType();
+}
+
+void MainWindow::setBatteryTypeFromSp515(int type)
+{
+    if (type == batteryTypeOnSp515)
+        return;
+    batteryTypeOnSp515 = type;
+    updateLithiumAccess();
+}
+
+void MainWindow::updateLithiumAccess()
+{
+    const bool lithium = batteryTypeOnSp515 == 3;
+    ui->pushButton_lithium_batt_disp->setEnabled(lithium);
+    ui->pushButton_lithium_batt->setEnabled(lithium);
+    // The lithium battery was deselected while its page is open: leave the page
+    if (!lithium && ui->stackedWidget->currentWidget() == ui->pagelithium_batt)
+        ui->stackedWidget->setCurrentWidget(ui->pageDashboard);
+}
+
+void MainWindow::openLithiumPage()
+{
+    if (batteryTypeOnSp515 != 3)
+        return;
+    if (ui->stackedWidget->currentWidget() != ui->pagelithium_batt)
+        lithiumReturnPage = ui->stackedWidget->currentWidget();
+    ui->stackedWidget->setCurrentWidget(ui->pagelithium_batt);
 }

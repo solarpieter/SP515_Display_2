@@ -92,6 +92,10 @@ public:
     // Ask for the SP515 status (is the charger really enabled, ...). Ignored while one is already waiting.
     void requestStatus();
 
+    // Ask which battery type is selected on the SP515 (battery config, command 14). Quiet: the answer comes
+    // only as batteryTypeReceived() or batteryTypeFailed(), so it never mixes with a page reading the same config.
+    void requestBatteryType();
+
     // Gains and offsets for all channels
     void requestAnalogueCalibration();
 
@@ -120,6 +124,8 @@ signals:
     void analogueCalibrationReceived(const AnalogueCalibration &c);
     void alarmsReceived(const Alarms &a);
     void statusReceived(const Status &s);
+    void batteryTypeReceived(quint8 type);      // eBattType_t: 1 lead acid, 2 NiCad, 3 lithium
+    void batteryTypeFailed();
 
     // Raw payload of every successful reply
     void replyReceived(quint16 command, const QByteArray &payload);
@@ -137,9 +143,10 @@ private:
         quint16 transactionId = 0;
         QByteArray payload;
         int timeoutMs = 0;                 // 0 = DefaultTimeoutMs
+        bool quiet = false;                // answered through batteryTypeReceived() only
     };
 
-    void enqueue(quint16 command, const QByteArray &payload, int timeoutMs = 0);
+    void enqueue(quint16 command, const QByteArray &payload, int timeoutMs = 0, bool quiet = false);
     void startNext();
     void onConnected();
     void onReadyRead();
@@ -164,6 +171,7 @@ private:
     bool m_pollPending = false;
     bool m_alarmsPending = false;
     bool m_statusPending = false;
+    bool m_typePending = false;
     quint8 m_lastStatus = 0;
 };
 

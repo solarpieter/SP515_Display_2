@@ -281,6 +281,15 @@ private:
     void setModeStatus(int kind, const QString &text, int level);   // level: 0 neutral, 1 good, 2 error, 3 warning
     void enableModeFields(int kind);
 
+    // Lithium battery page: opened from the dashboard battery icon or from Battery Settings, and only
+    // while the SP515 has a lithium battery selected (the battery type is read from the SP515)
+    int batteryTypeOnSp515 = -1;                    // eBattType_t from the SP515 (3 = lithium); -1 = not known
+    QWidget *lithiumReturnPage = nullptr;           // where Back goes
+    void setupLithiumPage();
+    void setBatteryTypeFromSp515(int type);
+    void updateLithiumAccess();
+    void openLithiumPage();
+
     // Communication Settings page: Wi-Fi and the wired (LAN) port, through NetworkManager (nmcli)
     NetControl *net = nullptr;
     TextKeyboard *commKeyboard = nullptr;
