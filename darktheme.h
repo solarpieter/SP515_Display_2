@@ -206,6 +206,12 @@ QPushButton:disabled {
     color: #A8B8C4;
 }
 
+/* Calibration page: the Current Value and Current offset blocks look like the boxes next to them */
+QLabel#label_current_value,
+QLabel#label_current_offset {
+    background-color: #000000;
+}
+
 QPushButton:pressed {
     background-color: #00A0B0;
 }

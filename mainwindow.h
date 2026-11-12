@@ -122,6 +122,10 @@ private:
     AnalogueCalibration lastCalibration;        // gains and offsets as the SP515 last reported them
     bool haveCalibration = false;
     void updateCurrentOffsetLabel();            // the offset the SP515 has for the selected measurement
+    void requestCalibrationOffsets();           // ask the SP515 for its offsets (one request at a time)
+    void clearCalibrationEntries();             // a different measurement was chosen: empty the typed values and OK / FAIL
+    QTimer *calibrationTimer = nullptr;         // keeps Current offset up to date while the page is open
+    bool calibrationOffsetPending = false;
     void updateCurrentValueLabel();             // "Current Value" label follows the combo box
     void setCalibrationBusy(bool busy);
 

@@ -263,23 +263,34 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->combo_calibration_target, qOverload<int>(&QComboBox::currentIndexChanged),
             this, [this](int)
             {
+                clearCalibrationEntries();                  // nothing typed or shown for the old selection stays
                 updateCurrentValueLabel();
                 updateCurrentOffsetLabel();
-                rs485->requestAnalogueCalibration();        // the offset of the new selection, as the SP515 has it
+                requestCalibrationOffsets();                // the offset of the new selection, as the SP515 has it
             });
     connect(rs485, &Rs485Client::analogueCalibrationReceived, this, [this](const AnalogueCalibration &c)
             {
+                calibrationOffsetPending = false;
                 lastCalibration = c;                        // what the SP515 has now
                 haveCalibration = true;
                 updateCurrentOffsetLabel();
             });
+    // While the Calibration page is open the offsets are read again every second (the reading itself
+    // arrives with the normal measurements, twice a second)
+    calibrationTimer = new QTimer(this);
+    connect(calibrationTimer, &QTimer::timeout, this, [this]() { requestCalibrationOffsets(); });
     // Read the SP515's offsets when the Calibration page opens
     connect(ui->stackedWidget, &QStackedWidget::currentChanged, this, [this](int)
             {
                 if (ui->stackedWidget->currentWidget() == ui->pageCalibration)
                 {
                     updateCurrentOffsetLabel();
-                    rs485->requestAnalogueCalibration();
+                    requestCalibrationOffsets();
+                    calibrationTimer->start(1000);
+                }
+                else
+                {
+                    calibrationTimer->stop();
                 }
             });
     connect(rs485, &Rs485Client::commandFinished, this, [this](quint16 command, bool ok, const QString &message)
@@ -324,6 +335,7 @@ MainWindow::MainWindow(QWidget *parent)
                 {
                     if (!ok)
                     {
+                        calibrationOffsetPending = false;
                         haveCalibration = false;            // the offset is not known now
                         updateCurrentOffsetLabel();
                     }
@@ -333,7 +345,7 @@ MainWindow::MainWindow(QWidget *parent)
                 {
                     reportCalibrationResult(ok, "Calibration failed:\n" + message);
                     if (ok)
-                        rs485->requestAnalogueCalibration();        // the SP515 has recalculated: read its offset back
+                        requestCalibrationOffsets();                // the SP515 has recalculated: read its offset back
                     return;
                 }
             });
@@ -847,6 +859,30 @@ void MainWindow::updateCurrentValueLabel()
     else
     {
         ui->label_current_value->setText("--");
+    }
+}
+
+void MainWindow::requestCalibrationOffsets()
+{
+    if (calibrationOffsetPending)
+        return;                                         // the last request has not been answered yet
+    calibrationOffsetPending = true;
+    rs485->requestAnalogueCalibration();
+}
+
+// A different measurement was chosen: the value typed for the old one, its OK / FAIL and the bar are cleared
+void MainWindow::clearCalibrationEntries()
+{
+    ui->spin_measured_value->setValue(0.0);
+    ui->spin_offset_value->setValue(0.0);
+    if (calibrateResultLabel)
+        calibrateResultLabel->hide();
+    if (offsetResultLabel)
+        offsetResultLabel->hide();
+    if (calibrationProgress)
+    {
+        calibrationProgress->setStyleSheet(QString());      // back to the theme colour
+        calibrationProgress->setValue(0);
     }
 }
 
