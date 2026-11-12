@@ -119,9 +119,9 @@ private:
     // Calibration page
     Measurements lastMeasurements;              // latest values from the daemon
     bool haveMeasurements = false;
-    int calibrationChannel = -1;                // channel being calibrated, -1 when idle
-    double calibrationMeasured = 0.0;           // value typed in by the user
-    double calibrationReading = 0.0;            // what the SP515 was showing at that moment
+    AnalogueCalibration lastCalibration;        // gains and offsets as the SP515 last reported them
+    bool haveCalibration = false;
+    void updateCurrentOffsetLabel();            // the offset the SP515 has for the selected measurement
     void updateCurrentValueLabel();             // "Current Value" label follows the combo box
     void setCalibrationBusy(bool busy);
 

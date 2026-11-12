@@ -32,57 +32,33 @@ static void applyBigPopupStyle(QMessageBox *box)
 }
 
 // ---- Calibration -----------------------------------------------------------
-// One entry per item in combo_calibration_target, in the same order. The list
-// position is also the channel number sent to the SP515 (0..8).
-// NOTE: confirm this order against the SP515 firmware before relying on it.
+// One entry per item in combo_calibration_target, in the same order.
+// All calibration maths is done on the SP515. The display only sends what the user typed:
+//   Calibrate     -> SET_ANA_GAIN (channel, the value read with a multimeter): the SP515 works out the new gain
+//   Apply Offset  -> SET_ANA_OFFSET (channel, the new offset)
+// and shows what the SP515 reports: the live reading (Current Value) and its offset (Current offset).
 struct CalibrationChannel
 {
     float Measurements::*value;     // where the live reading is found
     const char *unit;
+    int sp515Channel;               // channel number in SET_ANA_GAIN / SET_ANA_OFFSET (eMeasurements_t in the firmware)
+    int calibrationIndex;           // position in the GET_ANA_GAINS reply (-1: the SP515 reports no gain / offset for it)
 };
 
+// The order of combo_calibration_target (keep the two lists the same). The SP515's GET_ANA_GAINS lists
+// vBatt, vRect, iBatt, iRect, tBatt, vEarth, v24V, tOnboard, vRipple, so the position there is not the
+// channel number: that one is the measurement number (eMeasurements_t), where vRipple is 10.
 static const CalibrationChannel calibrationChannels[] =
 {
-    { &Measurements::vBatt,   "V" },   // 0  BATTERY VOLTAGE
-    { &Measurements::vRect,   "V" },   // 1  RECTIFIER VOLTAGE
-    { &Measurements::vLoad,   "V" },   // 2  LOAD VOLTAGE
-    { &Measurements::iBatt,   "A" },   // 3  BATTERY CURRENT
-    { &Measurements::iRect,   "A" },   // 4  RECTIFIER CURRENT
-    { &Measurements::iLoad,   "A" },   // 5  LOAD CURRENT
-    { &Measurements::tBatt,   "C" },   // 6  BATTERY TEMPERATURE
-    { &Measurements::vEarth,  "V" },   // 7  EARTH FAULT
-    { &Measurements::vRipple, "V" },   // 8  RIPPLE VOLTAGE
+    { &Measurements::vBatt,   "V",  0, 0 },   // 0  BATTERY VOLTAGE
+    { &Measurements::vRect,   "V",  1, 1 },   // 1  RECTIFIER VOLTAGE
+    { &Measurements::iBatt,   "A",  3, 2 },   // 2  BATTERY CURRENT
+    { &Measurements::iRect,   "A",  4, 3 },   // 3  RECTIFIER CURRENT
+    { &Measurements::tBatt,   "C",  6, 4 },   // 4  BATTERY TEMPERATURE
+    { &Measurements::vEarth,  "V",  7, 5 },   // 5  EARTH FAULT
+    { &Measurements::vRipple, "V", 10, 8 },   // 6  RIPPLE VOLTAGE
 };
 static const int calibrationChannelCount = int(sizeof(calibrationChannels) / sizeof(calibrationChannels[0]));
-
-// The SP515 is assumed to show:   value = raw * gain + offset
-// Given what it shows now ("reading") and what a reference meter says
-// ("measured"), work out the gain that makes the reading match, keeping the
-// current offset. There is no limit on how far the reading may be from the
-// measured value; the SP515 checks the gain it is given. Returns false (and
-// says why) only when no gain can be worked out.
-// NOTE: if the SP515 uses a different formula, this is the only place to change.
-static bool calculateNewGain(double currentGain, double offset, double reading, double measured,
-                             double &newGain, QString &problem)
-{
-    const double span = reading - offset;
-    if (std::fabs(span) < 1e-6)
-    {
-        problem = "The SP515 reading is zero, so a gain cannot be worked out from it.\n"
-                  "Use Apply Offset instead.";
-        return false;
-    }
-    const double factor = (measured - offset) / span;
-    const double gain = currentGain * factor;
-    if (factor == 0.0 || !std::isfinite(gain) || !std::isfinite(float(gain)))
-    {
-        problem = "The measured value is the same as the offset, which would give a gain of zero.\n"
-                  "Use Apply Offset instead.";
-        return false;
-    }
-    newGain = gain;
-    return true;
-}
 
 namespace {
 
@@ -237,6 +213,8 @@ MainWindow::MainWindow(QWidget *parent)
                 setSystemInfo("RECTIFIER --", nullptr, "No link to the daemon");
                 setChargerUnknown();
                 setBatteryTypeFromSp515(-1);
+                haveCalibration = false;                    // the offset of the Calibration page is not known now
+                updateCurrentOffsetLabel();
                 showAlarmState(false, false);
             });
 
@@ -283,23 +261,26 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Calibration page: the "Current Value" label follows the selected item
     connect(ui->combo_calibration_target, qOverload<int>(&QComboBox::currentIndexChanged),
-            this, [this](int) { updateCurrentValueLabel(); });
+            this, [this](int)
+            {
+                updateCurrentValueLabel();
+                updateCurrentOffsetLabel();
+                rs485->requestAnalogueCalibration();        // the offset of the new selection, as the SP515 has it
+            });
     connect(rs485, &Rs485Client::analogueCalibrationReceived, this, [this](const AnalogueCalibration &c)
             {
-                if (calibrationChannel < 0)
-                    return;                                 // not one of ours
-
-                const int channel = calibrationChannel;
-                double newGain = 0.0;
-                QString problem;
-                if (!calculateNewGain(c.gain[channel], c.offset[channel],
-                                      calibrationReading, calibrationMeasured, newGain, problem))
+                lastCalibration = c;                        // what the SP515 has now
+                haveCalibration = true;
+                updateCurrentOffsetLabel();
+            });
+    // Read the SP515's offsets when the Calibration page opens
+    connect(ui->stackedWidget, &QStackedWidget::currentChanged, this, [this](int)
+            {
+                if (ui->stackedWidget->currentWidget() == ui->pageCalibration)
                 {
-                    calibrationChannel = -1;
-                    reportCalibrationResult(false, "These values cannot be calibrated.\n" + problem);
-                    return;
+                    updateCurrentOffsetLabel();
+                    rs485->requestAnalogueCalibration();
                 }
-                rs485->setAnalogueGain(quint8(channel), float(newGain));
             });
     connect(rs485, &Rs485Client::commandFinished, this, [this](quint16 command, bool ok, const QString &message)
             {
@@ -339,16 +320,22 @@ MainWindow::MainWindow(QWidget *parent)
                     return;
                 }
 
-                const bool ours = command == Rs485Client::GetAnaGains
-                               || command == Rs485Client::SetAnaGain
-                               || command == Rs485Client::SetAnaOffset;
-                if (!ours)
+                if (command == Rs485Client::GetAnaGains)
+                {
+                    if (!ok)
+                    {
+                        haveCalibration = false;            // the offset is not known now
+                        updateCurrentOffsetLabel();
+                    }
                     return;
-                if (command == Rs485Client::GetAnaGains && ok)
-                    return;                                 // the gain is calculated and sent next
-
-                calibrationChannel = -1;
-                reportCalibrationResult(ok, "Calibration failed:\n" + message);
+                }
+                if (command == Rs485Client::SetAnaGain || command == Rs485Client::SetAnaOffset)
+                {
+                    reportCalibrationResult(ok, "Calibration failed:\n" + message);
+                    if (ok)
+                        rs485->requestAnalogueCalibration();        // the SP515 has recalculated: read its offset back
+                    return;
+                }
             });
     updateCurrentValueLabel();
     connect(rs485, &Rs485Client::replyReceived, this, &MainWindow::handleChargerOnReply);
@@ -863,6 +850,21 @@ void MainWindow::updateCurrentValueLabel()
     }
 }
 
+// The offset the SP515 has for the selected measurement (read from the SP515, never worked out here)
+void MainWindow::updateCurrentOffsetLabel()
+{
+    const int index = ui->combo_calibration_target->currentIndex();
+    if (!haveCalibration || index < 0 || index >= calibrationChannelCount
+        || calibrationChannels[index].calibrationIndex < 0)
+    {
+        ui->label_current_offset->setText("--");        // not known, or the SP515 has no offset for this one
+        return;
+    }
+    const CalibrationChannel &channel = calibrationChannels[index];
+    ui->label_current_offset->setText(QString::number(double(lastCalibration.offset[channel.calibrationIndex]), 'f', 3)
+                                      + " " + channel.unit);
+}
+
 void MainWindow::setCalibrationBusy(bool busy)
 {
     ui->btn_calibrate->setEnabled(!busy);
@@ -951,40 +953,31 @@ void MainWindow::showMessageBox(const QString &title, const QString &text)
     box->open();
 }
 
-// Calibrate: the user types what a reference meter shows. The gain of the
-// selected channel is adjusted so the SP515 reading matches that value.
+// Calibrate: the user types what a reference meter (multimeter) shows. That value is sent to the SP515,
+// which works out the new gain itself. The new reading comes back with the normal measurements.
 void MainWindow::on_btn_calibrate_clicked()
 {
     ui->spin_measured_value->interpretText();       // pick up a value typed but not yet confirmed
 
-    startCalibrationRun(CalibrationOp::Calibrate);
-
-    double reading = 0.0;
-    if (!selectedReading(reading))
-    {
-        reportCalibrationResult(false, "No reading available from the SP515.");
+    const int index = ui->combo_calibration_target->currentIndex();
+    if (index < 0 || index >= calibrationChannelCount)
         return;
-    }
 
-    calibrationChannel  = ui->combo_calibration_target->currentIndex();
-    calibrationMeasured = ui->spin_measured_value->value();
-    calibrationReading  = reading;
-
-    rs485->requestAnalogueCalibration();            // the new gain is worked out when this arrives
+    startCalibrationRun(CalibrationOp::Calibrate);
+    rs485->setAnalogueGain(quint8(calibrationChannels[index].sp515Channel), float(ui->spin_measured_value->value()));
 }
 
-// Apply Offset: the offset of the selected channel is set to the typed value.
+// Apply Offset: the typed offset is sent to the SP515, which does the rest.
 void MainWindow::on_btn_apply_offset_clicked()
 {
     ui->spin_offset_value->interpretText();
 
-    const int channel = ui->combo_calibration_target->currentIndex();
-    if (channel < 0 || channel >= calibrationChannelCount)
+    const int index = ui->combo_calibration_target->currentIndex();
+    if (index < 0 || index >= calibrationChannelCount)
         return;
 
     startCalibrationRun(CalibrationOp::ApplyOffset);
-    calibrationChannel = channel;
-    rs485->setAnalogueOffset(quint8(channel), float(ui->spin_offset_value->value()));
+    rs485->setAnalogueOffset(quint8(calibrationChannels[index].sp515Channel), float(ui->spin_offset_value->value()));
 }
 
 void MainWindow::on_pushButton_6_clicked()
