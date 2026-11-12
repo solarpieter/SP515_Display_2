@@ -176,6 +176,51 @@ The back light level and the two timers are saved immediately, in `~/.config/SP5
 - **Waking:** a touch or key press wakes the screen. That touch is not passed on, so it cannot press a button underneath.
 - The screen never dims while a pop-up is waiting for an answer, and the brightness is restored when the app closes.
 
+## Updating the programs on the second Pi (Pi 2)
+
+Pi 2 only runs the programs: it has no Qt development tools. Build on Pi 1 and copy the finished file over. A change to the display needs only `SP515_Display_2`; a change to the daemon needs only `rs485d`. The programs live in `/home/pieter007/sp515` on Pi 2 (use the user name of that Pi).
+
+**1. On Pi 1: get the latest code and make a Release build**
+
+```bash
+cd ~/Documents/SP515_Display_2
+git pull
+cmake -S . -B build/Release -G Ninja -DCMAKE_BUILD_TYPE=Release     # only the first time, or after new source files were added
+cmake --build build/Release
+ls -l build/Release/SP515_Display_2                                 # the date must be today
+```
+
+The daemon is built with `make` in its own folder (`~/Documents/SP515v1-rpi-main`) and the file is `rs485d`.
+
+**2. Copy the one file to Pi 2** with a USB stick, or over the network:
+
+```bash
+scp ~/Documents/SP515_Display_2/build/Release/SP515_Display_2 pieter007@<ip-of-pi-2>:sp515/
+```
+
+**3. On Pi 2: close the display first** (the EXIT button on the Menu page, or Alt+F4). Copying over a running program fails with "Text file busy".
+
+**4. On Pi 2: make the new file executable.** Copying (USB stick, `scp`, the file manager) often drops the executable setting, and the program then fails with "Permission denied":
+
+```bash
+chmod +x ~/sp515/SP515_Display_2
+ls -l ~/sp515/SP515_Display_2                                       # starts with -rwx, date is today
+```
+
+**5. Start it** (`~/sp515/SP515_Display_2`, or reboot if it starts at boot).
+
+When the daemon was replaced too, do the same with `rs485d`, then restart it, because the old copy is still running: stop it with Ctrl+C and start it again with `~/sp515/rs485d`, or run `sudo systemctl restart rs485d` when it runs as a service.
+
+If the program does not start on Pi 2, run it by hand in a terminal on that Pi's desktop and read the message it prints:
+
+```bash
+cd ~/sp515
+ldd SP515_Display_2 | grep "not found"     # a missing library shows up here
+./SP515_Display_2
+```
+
+Over SSH the program has no screen to open on; run it from a terminal on the Pi's own desktop.
+
 ## RS485 daemon (rs485d)
 
 `rs485d` lives in its own repository (`SP515v1-rpi`, written by a colleague). Keep it separate from this project, because the two programs only talk through the socket. Build and run it:
