@@ -176,7 +176,6 @@ private:
     void showChargerFromSp515(bool enabled);        // the SP515 reported the charger state: the switch follows it
     void setChargerUnknown();                       // no state from the SP515 (no link): the switch is greyed out
     bool chargerStateKnown = false;
-    int statusFailures = 0;                         // status requests in a row that got no answer
     void requestChargerState(bool on);              // ask the SP515 to switch the charger OFF (after the user said Yes)
     bool chargerCommandPending = false;
     // The PID Settings page has its own charger switch that works at once, without the Yes / No question.
@@ -205,6 +204,8 @@ private:
     Rs485Client *rs485;
     QTimer *pollTimer;
     bool daemonOk = false;
+    bool sp515Lost = false;                         // the SP515 has stopped answering: the daemon's stored values are not live
+    void showNoValues();                            // "--" for every value that comes from the SP515
 
     // Battery settings page. The SP515 checks every value against its own limits;
     // the display only reads the current values, lets them be edited, and sends them back.

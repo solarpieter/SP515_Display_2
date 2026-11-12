@@ -134,15 +134,20 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(rs485, &Rs485Client::analogueInputsReceived, this, [this](const Measurements &m)
             {
-                lastMeasurements = m;
-                haveMeasurements = true;
-                updateCurrentValueLabel();
-
                 if (!daemonOk)
                 {
                     daemonOk = true;
                     qDebug() << "rs485d: connected";
                 }
+
+                // The daemon keeps answering with the last values it has while the SP515 is silent
+                // (cable removed, board off). They are not live, so they are not shown.
+                if (sp515Lost)
+                    return;
+
+                lastMeasurements = m;
+                haveMeasurements = true;
+                updateCurrentValueLabel();
 
                 // Dashboard and Enable / Disable page: rectifier voltage and current
                 const QString rectV = m.complete ? QString::number(m.vRect, 'f', 1) + " V" : QString("--");
@@ -183,9 +188,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(rs485, &Rs485Client::failed, this, [this](const QString &reason)
             {
-                haveMeasurements = false;
-                updateCurrentValueLabel();
-
                 if (daemonOk)
                 {
                     daemonOk = false;
@@ -193,40 +195,27 @@ MainWindow::MainWindow(QWidget *parent)
                 }
 
                 // Don't leave old numbers on screen as if they were live
-                for (QLabel *label : {ui->label_batt_volt_value_2,
-                                      ui->label_batt_volt_value_3,
-                                      ui->label_batt_current_value_2,
-                                      ui->label_batt_current_value_3,
-                                      ui->label_batt_mode_value_4,
-                                      ui->label_batt_mode_value_2,
-                                      ui->label_load_volt_value_2,
-                                      ui->label_load_current_value_2,
-                                      ui->label_rectifier_voltage_value,
-                                      ui->label_rectifier_current_value,
-                                      ui->label_4_rect_volt_value,
-                                      ui->label_rect_curr_value,
-                                      ui->label_rect_volt_value_4,
-                                      ui->label_rect_current_value_4})
-                {
-                    label->setText("--");
-                }
+                showNoValues();
                 setSystemInfo("RECTIFIER --", nullptr, "No link to the daemon");
-                setChargerUnknown();
-                setBatteryTypeFromSp515(-1);
-                haveCalibration = false;                    // the offset of the Calibration page is not known now
-                updateCurrentOffsetLabel();
-                showAlarmState(false, false);
             });
 
     connect(rs485, &Rs485Client::alarmsReceived, this, [this](const Alarms &a)
             {
+                if (sp515Lost)
+                    return;
                 showAlarmState(true, a.any());
             });
 
     // Dashboard, next to "System Status": is the rectifier really enabled (as reported by the SP515)
     connect(rs485, &Rs485Client::statusReceived, this, [this](const Status &st)
             {
-                statusFailures = 0;
+                if (sp515Lost)
+                {
+                    sp515Lost = false;                              // the values come back with the next readings
+                    rs485->requestBatteryType();
+                    if (ui->stackedWidget->currentWidget() == ui->pageCalibration)
+                        requestCalibrationOffsets();
+                }
                 showChargerFromSp515(st.enabled != 0);              // the SP515 decides, not the display
                 ui->label_batt_mode_value_2->setText(chargeModeName(st.mode));
 
@@ -308,8 +297,8 @@ MainWindow::MainWindow(QWidget *parent)
                     const bool noAnswer = rs485->lastErrorStatus() == 3;
                     setSystemInfo("RECTIFIER --", nullptr, noAnswer ? "No answer from the SP515" : "No link to the daemon");
                     ui->label_batt_mode_value_2->setText("--");
-                    if (++statusFailures >= 2)                      // one missed poll is not enough to grey out the switch
-                        setChargerUnknown();
+                    sp515Lost = true;                               // the daemon's stored values are not live:
+                    showNoValues();                                 // show "--" at the same moment as the message
                     return;
                 }
 
@@ -529,6 +518,37 @@ void MainWindow::on_pushButtonDisplay_settings_clicked()
 
 
 // System alarms on the dashboard and on the Enable / Disable page (always the same text)
+// "--" for everything that comes from the SP515: the dashboard, the Enable / Disable page, the PID page
+// rectifier readout, the Calibration page reading and offset, the charger switch and the battery type.
+void MainWindow::showNoValues()
+{
+    haveMeasurements = false;
+    updateCurrentValueLabel();                      // Calibration page: Current Value
+
+    for (QLabel *label : {ui->label_batt_volt_value_2,
+                          ui->label_batt_volt_value_3,
+                          ui->label_batt_current_value_2,
+                          ui->label_batt_current_value_3,
+                          ui->label_batt_mode_value_4,
+                          ui->label_batt_mode_value_2,
+                          ui->label_load_volt_value_2,
+                          ui->label_load_current_value_2,
+                          ui->label_rectifier_voltage_value,
+                          ui->label_rectifier_current_value,
+                          ui->label_4_rect_volt_value,
+                          ui->label_rect_curr_value,
+                          ui->label_rect_volt_value_4,
+                          ui->label_rect_current_value_4})
+    {
+        label->setText("--");
+    }
+    setChargerUnknown();
+    setBatteryTypeFromSp515(-1);
+    haveCalibration = false;                        // the offset of the Calibration page is not known now
+    updateCurrentOffsetLabel();
+    showAlarmState(false, false);
+}
+
 void MainWindow::showAlarmState(bool haveData, bool active)
 {
     alarmActive = haveData && active;
