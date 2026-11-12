@@ -58,17 +58,29 @@ static const int calibrationChannelCount = int(sizeof(calibrationChannels) / siz
 // The SP515 is assumed to show:   value = raw * gain + offset
 // Given what it shows now ("reading") and what a reference meter says
 // ("measured"), work out the gain that makes the reading match, keeping the
-// current offset. Returns false if the numbers cannot be trusted.
+// current offset. There is no limit on how far the reading may be from the
+// measured value; the SP515 checks the gain it is given. Returns false (and
+// says why) only when no gain can be worked out.
 // NOTE: if the SP515 uses a different formula, this is the only place to change.
-static bool calculateNewGain(double currentGain, double offset, double reading, double measured, double &newGain)
+static bool calculateNewGain(double currentGain, double offset, double reading, double measured,
+                             double &newGain, QString &problem)
 {
     const double span = reading - offset;
     if (std::fabs(span) < 1e-6)
-        return false;                               // reading is zero: nothing to scale
+    {
+        problem = "The SP515 reading is zero, so a gain cannot be worked out from it.\n"
+                  "Use Apply Offset instead.";
+        return false;
+    }
     const double factor = (measured - offset) / span;
-    if (!(factor > 0.1 && factor < 10.0))
-        return false;                               // refuse corrections of more than 10x either way
-    newGain = currentGain * factor;
+    const double gain = currentGain * factor;
+    if (factor == 0.0 || !std::isfinite(gain) || !std::isfinite(float(gain)))
+    {
+        problem = "The measured value is the same as the offset, which would give a gain of zero.\n"
+                  "Use Apply Offset instead.";
+        return false;
+    }
+    newGain = gain;
     return true;
 }
 
@@ -279,13 +291,12 @@ MainWindow::MainWindow(QWidget *parent)
 
                 const int channel = calibrationChannel;
                 double newGain = 0.0;
+                QString problem;
                 if (!calculateNewGain(c.gain[channel], c.offset[channel],
-                                      calibrationReading, calibrationMeasured, newGain))
+                                      calibrationReading, calibrationMeasured, newGain, problem))
                 {
                     calibrationChannel = -1;
-                    reportCalibrationResult(false, "These values cannot be calibrated.\n"
-                                                   "The reading must not be zero, and the measured value must be "
-                                                   "within a factor of 10 of the reading.");
+                    reportCalibrationResult(false, "These values cannot be calibrated.\n" + problem);
                     return;
                 }
                 rs485->setAnalogueGain(quint8(channel), float(newGain));

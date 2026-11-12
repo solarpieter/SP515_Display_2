@@ -75,7 +75,7 @@
      <number>0</number>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>16</number>
     </property>
     <widget class="QWidget" name="pageDashboard">
      <property name="minimumSize">
@@ -4837,7 +4837,7 @@
         <second>0</second>
         <year>2026</year>
         <month>1</month>
-        <day>14</day>
+        <day>13</day>
        </datetime>
       </property>
       <property name="displayFormat">
@@ -5720,7 +5720,7 @@
       <property name="geometry">
        <rect>
         <x>680</x>
-        <y>320</y>
+        <y>200</y>
         <width>301</width>
         <height>49</height>
        </rect>
@@ -5738,7 +5738,7 @@
       <property name="geometry">
        <rect>
         <x>1000</x>
-        <y>320</y>
+        <y>200</y>
         <width>250</width>
         <height>49</height>
        </rect>
@@ -5779,8 +5779,8 @@
      <widget class="ToggleSwitch" name="btnChargerEnable_pid">
       <property name="geometry">
        <rect>
-        <x>700</x>
-        <y>135</y>
+        <x>680</x>
+        <y>300</y>
         <width>241</width>
         <height>141</height>
        </rect>
@@ -5802,7 +5802,7 @@
       <property name="geometry">
        <rect>
         <x>960</x>
-        <y>140</y>
+        <y>280</y>
         <width>290</width>
         <height>175</height>
        </rect>
@@ -5813,13 +5813,13 @@
        </font>
       </property>
       <property name="text">
-       <string></string>
-      </property>
-      <property name="wordWrap">
-       <bool>true</bool>
+       <string/>
       </property>
       <property name="alignment">
        <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
       </property>
      </widget>
     </widget>
