@@ -226,6 +226,7 @@ private:
     bool batteryFloatCellVEdited = false;           // the Float V/Cell box was edited
     bool batteryRateEdited = false;                 // the Recharge Rate box was edited (float current limit)
     void updateRechargeRateBox();                   // recharge rate % from the float current limit and the capacity x strings
+    void updateBatteryVoltages();                   // Float / Boost / Equalize / Initialize voltage = V/Cell x cells per string
     bool batteryUnsentEdited = false;               // recharge rate, efficiency or compensation edited: not sent to the SP515
     void setupBatteryPage();
     void setSystemInfo(const QString &line1, const char *color1, const QString &line2, const char *color2 = nullptr);   // two-line text on the dashboard

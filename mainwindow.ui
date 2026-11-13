@@ -6120,7 +6120,7 @@
        <string>Current Set point</string>
       </property>
      </widget>
-     <widget class="QDoubleSpinBox" name="doubleSpinBox">
+     <widget class="QDoubleSpinBox" name="doubleSpinBox_v_setpoint">
       <property name="geometry">
        <rect>
         <x>960</x>
@@ -6141,7 +6141,7 @@
        <double>999.990000000000009</double>
       </property>
      </widget>
-     <widget class="QDoubleSpinBox" name="doubleSpinBox_2">
+     <widget class="QDoubleSpinBox" name="doubleSpinBox_i_setpoint">
       <property name="geometry">
        <rect>
         <x>960</x>

@@ -617,11 +617,36 @@ void MainWindow::on_btnChargerEnable_pid_clicked(bool checked)
         return;
 
     chargerImmediate = true;
-    setPidChargerMessage(checked ? "Switching ON..." : "Switching OFF...", 0);
-    if (checked)
-        beginChargerOn();                           // reads the float settings, then sends
-    else
+    if (!checked)
+    {
+        setPidChargerMessage("Switching OFF...", 0);
         requestChargerState(false);
+        return;
+    }
+
+    // ON. With a voltage and a current set point typed in, those are sent. With both left at 0 the set point
+    // comes from the SP515's float settings (voltage = float V/Cell x cells, current limit = float current limit).
+    ui->doubleSpinBox_v_setpoint->interpretText();
+    ui->doubleSpinBox_i_setpoint->interpretText();
+    const double volts = ui->doubleSpinBox_v_setpoint->value();
+    const double amps = ui->doubleSpinBox_i_setpoint->value();
+
+    if ((volts > 0.0) != (amps > 0.0))
+    {
+        setPidChargerMessage("Enter both the voltage and the current set point, or leave both at 0 to use the float settings.", 2);
+        return;
+    }
+    setPidChargerMessage("Switching ON...", 0);
+    if (volts > 0.0 && amps > 0.0)
+    {
+        chargerCommandPending = true;               // as in beginChargerOn(): the switch waits for the SP515's answer
+        chargerPendingOn = true;
+        setChargerSwitchesEnabled(false);
+        chargerSetpointText = QString("%1 V, %2 A").arg(volts, 0, 'f', 2).arg(amps, 0, 'f', 1);
+        rs485->setChargerSetpoint(true, float(volts), float(amps));
+    }
+    else
+        beginChargerOn();                           // reads the float settings, then sends
 }
 
 void MainWindow::setChargerSwitchesEnabled(bool enabled)
@@ -1423,6 +1448,7 @@ void MainWindow::setupBatteryPage()
                 batteryEdited(BlockFloat);
             });
     updateRechargeRateBox();                        // off until the values have been read
+    updateBatteryVoltages();                        // "--" until the values have been read
 
     // Read the values every time the page is opened
     connect(ui->stackedWidget, &QStackedWidget::currentChanged, this, [this](int)
@@ -1493,6 +1519,7 @@ void MainWindow::loadBatterySettings()
         rs485->sendCommand(batteryLayout[block].getCommand);
     }
     updateRechargeRateBox();
+    updateBatteryVoltages();
     updateBatteryButtons();
 }
 
@@ -1545,6 +1572,7 @@ void MainWindow::handleBatteryReply(quint16 command, const QByteArray &payload)
             setBatteryBlockEnabled(block, true);
             if (block == BlockFloat || block == BlockBattery)
                 updateRechargeRateBox();
+            updateBatteryVoltages();
         }
         break;
     }
@@ -1579,8 +1607,30 @@ void MainWindow::updateRechargeRateBox()
     ui->doubleSpinBox_recharge_rate->setValue(usable ? double(floatAt(floatCfg.raw, 4)) / (capacityStrings / 100.0) : 0.0);
 }
 
+// Float, Boost, Equalize and Initialize voltage = V/Cell x cells per string (strings are in parallel, so they
+// do not add voltage). Follows what is on the page, also before it is saved.
+void MainWindow::updateBatteryVoltages()
+{
+    struct Row { int block; QDoubleSpinBox *perCell; QLabel *total; };
+    const Row rows[] = {
+        { BlockFloat,      ui->doubleSpinBox_float_v_cell,      ui->label_4_float_calc },
+        { BlockBoost,      ui->doubleSpinBox_boost_v_cell,      ui->label_4_boost_calc },
+        { BlockEqualize,   ui->doubleSpinBox_equalize_v_cell,   ui->label_4_equalize_calc },
+        { BlockInitialize, ui->doubleSpinBox_initialize_v_cell, ui->label_4_initialize_calc },
+    };
+    const bool cellsKnown = batteryBlocks[BlockBattery].loaded;
+    for (const Row &r : rows)
+    {
+        if (!cellsKnown || !batteryBlocks[r.block].loaded)
+            r.total->setText("--");                 // not read from the SP515 yet
+        else
+            r.total->setText(QString::number(r.perCell->value() * ui->spinBox_cells->value(), 'f', 2) + " V");
+    }
+}
+
 void MainWindow::batteryEdited(int block)
 {
+    updateBatteryVoltages();                        // cells or a V/Cell changed: the voltages follow at once
     batteryBlocks[block].dirty = true;
     batteryErrorLabel(block)->clear();
     if (batteryPendingSets == 0)
@@ -1764,6 +1814,15 @@ void MainWindow::setupPidPage()
     // Four decimals: with the default two, a gain such as 0.005 would be shown as 0.01
     pidKeypad = new NumericKeypad(ui->pagePID_settings);
     pidKeypad->setKeySize(84, 72);
+    // Voltage and current set point used when the charger is switched on from this page
+    for (QDoubleSpinBox *spin : {ui->doubleSpinBox_v_setpoint, ui->doubleSpinBox_i_setpoint})
+    {
+        spin->setDecimals(2);
+        spin->setRange(0.0, 9999.99);
+        spin->setLocale(QLocale::c());
+        pidKeypad->registerEdit(spin);
+    }
+
     for (int i = 0; i < pidGainCount; ++i)
     {
         QDoubleSpinBox *spin = pidSpin(i);
